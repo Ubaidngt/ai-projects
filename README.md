@@ -1,7 +1,7 @@
 # 🤖 AI Projects
 
 A collection of my AI / machine learning projects — built while studying
-BS Artificial Intelligence at Riphah International University, Faisalabad.
+BS Artificial Intelligence.
 
 ## Projects
 
@@ -17,4 +17,4 @@ Python · Gradio · sentence-transformers · NumPy · PyTorch · scikit-learn ·
 
 ---
 
-Built by **Ubaid Hassan** — BS AI, Riphah International University Faisalabad
+Built by **Ubaid Hassan** — BS AI undergrad, Master's aspirant
