@@ -1,0 +1,12 @@
+# secrets — never commit real API keys
+.env
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# hugging face / models cache
+.cache/

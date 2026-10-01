@@ -1,0 +1,18 @@
+RAG Document Q&A — sample test document
+=========================================
+
+Artificial Intelligence (AI) is the simulation of human intelligence by machines.
+Machine Learning (ML) is a subset of AI focused on learning patterns from data.
+Deep Learning (DL) uses multi-layered neural networks and powers modern breakthroughs
+like image recognition and large language models.
+
+Retrieval-Augmented Generation (RAG) combines a retriever with a generator.
+The retriever finds the most relevant document chunks for a question, usually with
+dense embeddings and cosine similarity. The generator, typically a large language
+model, then writes the final answer grounded ONLY on those retrieved chunks.
+This reduces hallucinations compared to answering from the model's memory alone.
+
+Popular embedding models include all-MiniLM-L6-v2, a lightweight 384-dimensional
+model that is fast and works well for semantic search on English text.
+
+Try asking: "What is RAG?" or "Which embedding model is mentioned?"

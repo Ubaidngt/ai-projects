@@ -1,0 +1,7 @@
+gradio>=5.0
+sentence-transformers>=2.2
+numpy
+pypdf
+requests
+python-dotenv
+spaces
