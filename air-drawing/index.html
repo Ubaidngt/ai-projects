@@ -1,0 +1,1394 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <title>Air Drawing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0d1c;
+        --panel: rgba(16, 20, 40, 0.82);
+        --panel-border: rgba(255, 255, 255, 0.12);
+        --ink: #f2f4ff;
+        --ink-dim: #a7add0;
+        --accent: #ffd23f;
+        --accent-2: #22c1ff;
+        --danger: #ff4d6d;
+        --good: #3ddc84;
+        --radius: 18px;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: "Nunito", system-ui, sans-serif;
+        background:
+          radial-gradient(900px 500px at 12% -10%, rgba(77, 124, 255, 0.25), transparent 60%),
+          radial-gradient(800px 500px at 95% 110%, rgba(255, 59, 107, 0.18), transparent 60%),
+          var(--bg);
+        color: var(--ink);
+        overflow: hidden;
+      }
+
+      /* ---------- Stage ---------- */
+      #stage {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+      }
+      #cam {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+        background: #05060d;
+      }
+      #drawCanvas, #overlayCanvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      #stage.no-cam #cam { display: none; }
+      #stage.no-cam {
+        background:
+          radial-gradient(700px 420px at 20% 15%, rgba(34, 193, 255, 0.16), transparent 60%),
+          radial-gradient(700px 420px at 85% 85%, rgba(255, 210, 63, 0.12), transparent 60%),
+          #0d1126;
+      }
+
+      /* ---------- Header ---------- */
+      header {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        pointer-events: none;
+        z-index: 30;
+      }
+      .brand { pointer-events: auto; }
+      .brand h1 {
+        font-family: "Baloo 2", "Nunito", sans-serif;
+        font-size: clamp(26px, 4vw, 40px);
+        line-height: 1;
+        margin: 0;
+        letter-spacing: 0.5px;
+        text-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
+      }
+      .brand h1 .a { color: var(--accent); }
+      .brand h1 .b { color: var(--accent-2); }
+      .brand p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-dim);
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+      }
+      .status-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        pointer-events: auto;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-weight: 800;
+        font-size: 14px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        white-space: nowrap;
+      }
+      .pill .dot {
+        width: 11px; height: 11px;
+        border-radius: 50%;
+        background: #6b7194;
+        flex: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+      }
+      .pill.mode-draw .dot { background: var(--good); }
+      .pill.mode-move .dot { background: var(--accent-2); }
+      .pill.mode-erase .dot { background: var(--danger); }
+      .pill.mode-gesture .dot { background: var(--accent); }
+      .color-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        padding: 6px 12px 6px 7px;
+        font-size: 13px;
+        font-weight: 800;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .color-chip .sw {
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.75);
+        background: #ff3b6b;
+      }
+
+      /* ---------- Gesture guide ---------- */
+      #guide {
+        position: absolute;
+        top: 110px;
+        right: 16px;
+        z-index: 25;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        width: 248px;
+        max-height: calc(100vh - 250px);
+        overflow-y: auto;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      #guide h2 {
+        margin: 0 0 8px;
+        font-family: "Baloo 2", sans-serif;
+        font-size: 15px;
+        letter-spacing: 0.4px;
+        color: var(--accent);
+      }
+      #guide ul { margin: 0; padding: 0; list-style: none; }
+      #guide li {
+        display: flex;
+        gap: 9px;
+        align-items: baseline;
+        padding: 4px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      #guide li b { color: var(--accent-2); font-weight: 800; white-space: nowrap; }
+      #guide li span { color: var(--ink-dim); }
+      #guideToggle {
+        position: absolute;
+        top: 110px;
+        right: 16px;
+        z-index: 26;
+        display: none;
+      }
+
+      /* ---------- Toolbar ---------- */
+      #toolbar {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: max(14px, env(safe-area-inset-bottom));
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        padding: 10px 14px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+        max-width: calc(100vw - 20px);
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .palette { display: flex; gap: 7px; align-items: center; }
+      .swatch {
+        --dwell: 0;
+        position: relative;
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        padding: 0;
+        cursor: pointer;
+        flex: none;
+        transition: transform 0.15s ease, border-color 0.15s ease;
+      }
+      .swatch:hover { transform: scale(1.12); }
+      .swatch.active { border-color: #fff; transform: scale(1.14); }
+      .swatch::after, .tool::after {
+        content: "";
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        background: conic-gradient(var(--accent) calc(var(--dwell) * 1turn), transparent 0);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+        opacity: var(--dwell);
+        pointer-events: none;
+      }
+      .divider { width: 1px; align-self: stretch; background: rgba(255, 255, 255, 0.16); margin: 2px 2px; }
+      .tool {
+        --dwell: 0;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--ink);
+        font-family: "Nunito", sans-serif;
+        font-weight: 800;
+        font-size: 13.5px;
+        border-radius: 999px;
+        padding: 9px 14px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+      .tool:hover { background: rgba(255, 255, 255, 0.15); }
+      .tool:active { transform: scale(0.96); }
+      .tool.on { background: var(--danger); border-color: var(--danger); color: #fff; }
+      .tool.fx.on { background: var(--accent-2); border-color: var(--accent-2); color: #06222f; }
+      .tool.fx.on:hover { background: #4ccfff; }
+      .tool .glyph { font-size: 17px; line-height: 1; }
+      .tool svg { width: 17px; height: 17px; flex: none; }
+      .tool.save { background: var(--accent); border-color: var(--accent); color: #191104; }
+      .tool.save:hover { background: #ffdc5c; }
+      .size-dots { display: inline-flex; gap: 3px; align-items: flex-end; }
+      .size-dots i { display: block; border-radius: 50%; background: currentColor; opacity: 0.35; }
+      .size-dots i:nth-child(1) { width: 5px; height: 5px; }
+      .size-dots i:nth-child(2) { width: 8px; height: 8px; }
+      .size-dots i:nth-child(3) { width: 12px; height: 12px; }
+      .size-dots i.lit { opacity: 1; }
+
+      /* ---------- Start / error overlay ---------- */
+      #gate {
+        position: absolute;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(5, 7, 16, 0.55);
+      }
+      #gate.hidden { display: none; }
+      .gate-card {
+        max-width: 520px;
+        width: 100%;
+        background: rgba(17, 21, 44, 0.94);
+        border: 1px solid var(--panel-border);
+        border-radius: 26px;
+        padding: 32px 30px;
+        text-align: center;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+      }
+      .gate-card .hand-art { width: 84px; height: 84px; margin: 0 auto 6px; }
+      .gate-card h2 {
+        font-family: "Baloo 2", sans-serif;
+        font-size: 30px;
+        margin: 6px 0 8px;
+      }
+      .gate-card p { color: var(--ink-dim); font-weight: 600; font-size: 15px; line-height: 1.55; margin: 0 0 14px; }
+      .gate-card .mini-guide {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        text-align: left;
+        margin: 0 auto 20px;
+        max-width: 420px;
+      }
+      .gate-card .mini-guide div {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 12px;
+        padding: 9px 11px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .gate-card .mini-guide b { color: var(--accent-2); display: block; font-size: 13.5px; }
+      .gate-card .mini-guide span { color: var(--ink-dim); font-weight: 600; }
+      #startBtn {
+        font-family: "Baloo 2", sans-serif;
+        font-size: 19px;
+        background: var(--accent);
+        color: #191104;
+        border: none;
+        border-radius: 999px;
+        padding: 14px 34px;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(255, 210, 63, 0.35);
+        transition: transform 0.15s ease, background 0.15s ease;
+      }
+      #startBtn:hover { background: #ffdc5c; transform: translateY(-1px); }
+      #startBtn:disabled { opacity: 0.6; cursor: wait; transform: none; }
+      #gateMsg { min-height: 22px; margin-top: 14px; font-size: 14px; font-weight: 700; color: var(--ink-dim); }
+      #gateMsg.error { color: #ff8fa5; }
+
+      /* ---------- Toast ---------- */
+      #toast {
+        position: absolute;
+        left: 50%;
+        bottom: 96px;
+        transform: translateX(-50%) translateY(8px);
+        z-index: 40;
+        background: rgba(10, 13, 28, 0.92);
+        border: 1px solid var(--panel-border);
+        color: var(--ink);
+        font-weight: 800;
+        font-size: 14.5px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        white-space: nowrap;
+      }
+      #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      #flash {
+        position: absolute; inset: 0; z-index: 20; pointer-events: none;
+        background: #fff; opacity: 0;
+      }
+      #flash.go { animation: flashAnim 0.35s ease-out; }
+      @keyframes flashAnim { 0% { opacity: 0.55; } 100% { opacity: 0; } }
+
+      @media (max-width: 760px) {
+        #guide { display: none; }
+        #guide.open { display: block; top: 118px; }
+        #guideToggle {
+          display: inline-flex;
+          top: auto;
+          position: static;
+        }
+        .brand p { display: none; }
+        #toolbar { border-radius: 22px; padding: 9px 10px; gap: 8px; }
+        .swatch { width: 30px; height: 30px; }
+        .tool { padding: 8px 11px; font-size: 12.5px; }
+        .tool .lbl { display: none; }
+        .tool.save .lbl, .tool.clear .lbl, .tool.undo .lbl { display: inline; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; animation: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage" class="no-cam">
+      <video id="cam" autoplay playsinline muted></video>
+      <canvas id="drawCanvas"></canvas>
+      <canvas id="overlayCanvas"></canvas>
+      <div id="flash"></div>
+
+      <header>
+        <div class="brand">
+          <h1><span class="a">Air</span> <span class="b">Drawing</span></h1>
+          <p>Wave your hand. Your fingertip is the pen.</p>
+        </div>
+        <div class="status-stack">
+          <div class="pill" id="modePill"><span class="dot"></span><span id="modeText">Camera off</span></div>
+          <div class="color-chip"><span class="sw" id="chipSwatch"></span><span id="chipName">Ruby Red</span></div>
+          <button class="tool" id="guideToggle" type="button">Gestures</button>
+        </div>
+      </header>
+
+      <aside id="guide" aria-label="Gesture guide">
+        <h2>Hand Gestures</h2>
+        <ul>
+          <li><b>One finger</b><span>Draw in the air</span></li>
+          <li><b>Two fingers</b><span>Move, pen lifted</span></li>
+          <li><b>Fist (hold)</b><span>Clear the canvas</span></li>
+          <li><b>Open palm</b><span>Flower blooms in your hand</span></li>
+          <li><b>Two-hand heart</b><span>Magic heart appears — pinch to recolor</span></li>
+          <li><b>Pinch (stamp mode)</b><span>Stamp the emoji</span></li>
+          <li><b>Point at toolbar</b><span>Hold to pick tools &amp; fun modes</span></li>
+        </ul>
+      </aside>
+
+      <div id="toast" role="status"></div>
+
+      <nav id="toolbar" aria-label="Drawing tools">
+        <div class="palette" id="palette"></div>
+        <div class="divider"></div>
+        <button class="tool" id="sizeBtn" type="button" title="Brush size">
+          <span class="size-dots" id="sizeDots"><i></i><i></i><i></i></span>
+          <span class="lbl">Brush</span> <span id="sizeName">M</span>
+        </button>
+        <button class="tool" id="eraserBtn" type="button" title="Eraser">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+          <span class="lbl">Eraser</span>
+        </button>
+        <button class="tool fx" id="rainbowBtn" type="button" data-dwell="rainbow" title="Rainbow brush — color cycles as you draw">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M3.5 19a8.5 8.5 0 0 1 17 0" stroke="#ff3b6b"/><path d="M7 19a5 5 0 0 1 10 0" stroke="#ffd23f"/><path d="M10.5 19a1.5 1.5 0 0 1 3 0" stroke="#22c1ff"/></svg>
+          <span class="lbl">Rainbow</span>
+        </button>
+        <button class="tool fx" id="neonBtn" type="button" data-dwell="neon" title="Neon glow brush">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+          <span class="lbl">Neon</span>
+        </button>
+        <button class="tool fx" id="sparkleBtn" type="button" data-dwell="sparkle" title="Sparkle trail">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.7 4.9 2.3 7 7.2 7.7-4.9.7-6.5 2.8-7.2 7.7-.7-4.9-2.3-7-7.2-7.7C9.7 9 11.3 6.9 12 2z"/><path d="M19 14.5c.3 2 .9 2.8 2.9 3.1-2 .3-2.6 1.1-2.9 3.1-.3-2-.9-2.8-2.9-3.1 2-.3 2.6-1.1 2.9-3.1z"/></svg>
+          <span class="lbl">Sparkle</span>
+        </button>
+        <button class="tool fx" id="mirrorBtn" type="button" data-dwell="mirror" title="Mirror / kaleidoscope — 4-way symmetry">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="3 3"/><path d="M8.5 7.5 4 12l4.5 4.5z"/><path d="M15.5 7.5 20 12l-4.5 4.5z"/></svg>
+          <span class="lbl">Mirror</span>
+        </button>
+        <button class="tool fx" id="stampBtn" type="button" data-dwell="stamp" title="Emoji stamp — pinch or hold two fingers to stamp">
+          <span class="glyph" id="stampGlyph">⭐</span>
+          <span class="lbl">Stamp</span>
+        </button>
+        <button class="tool undo" id="undoBtn" type="button" data-dwell="undo" title="Undo last stroke (Ctrl+Z)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+          <span class="lbl">Undo</span>
+        </button>
+        <div class="divider"></div>
+        <button class="tool clear" id="clearBtn" type="button" title="Clear canvas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          <span class="lbl">Clear</span>
+        </button>
+        <button class="tool save" id="saveBtn" type="button" title="Save snapshot as PNG">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+          <span class="lbl">Save PNG</span>
+        </button>
+      </nav>
+
+      <div id="gate">
+        <div class="gate-card">
+          <svg class="hand-art" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <path d="M22 30V14a3.5 3.5 0 0 1 7 0v-2a3.5 3.5 0 0 1 7 0v2a3.5 3.5 0 0 1 7 0v16" stroke="#22c1ff" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M22 32c-4-6-9-5-7 .5C17 40 22 54 34 54c10 0 14-8 14-18" stroke="#ffd23f" stroke-width="3.5" stroke-linecap="round"/>
+            <circle cx="29" cy="10" r="3.4" fill="#ff3b6b"/>
+            <path d="M40 6l1.6 3.4L45 11l-3.4 1.6L40 16l-1.6-3.4L35 11l3.4-1.6L40 6Z" fill="#ffd23f"/>
+          </svg>
+          <h2>Draw in thin air</h2>
+          <p>
+            This demo tracks your hand with the webcam — no mouse, no touch, no install.
+            Hold up one finger and write in the air; the screen does the rest.
+            Try the rainbow brush and mirror mode — and make a heart with both hands for a surprise.
+          </p>
+          <div class="mini-guide">
+            <div><b>One finger</b><span>Draw</span></div>
+            <div><b>Two fingers</b><span>Move without drawing</span></div>
+            <div><b>Fist, held</b><span>Clear everything</span></div>
+            <div><b>Open palm, held</b><span>A flower blooms in your hand</span></div>
+          </div>
+          <button id="startBtn" type="button">Start Camera</button>
+          <div id="gateMsg">Your video stays on this device — nothing is uploaded.</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+    <script>
+      (function () {
+        "use strict";
+
+        var COLORS = [
+          { name: "Ruby Red", hex: "#ff3b6b" },
+          { name: "Tangerine", hex: "#ff8a2a" },
+          { name: "Sunbeam", hex: "#ffd23f" },
+          { name: "Mint Green", hex: "#3ddc84" },
+          { name: "Sky Blue", hex: "#22c1ff" },
+          { name: "Royal Blue", hex: "#4d7cff" },
+          { name: "Violet", hex: "#b06bff" },
+          { name: "Snow White", hex: "#ffffff" }
+        ];
+        var SIZES = [
+          { name: "S", px: 6 },
+          { name: "M", px: 13 },
+          { name: "L", px: 24 }
+        ];
+        var DWELL_MS = 550;
+        var FLOWER_HOLD_MS = 500;
+        var FIST_HOLD_MS = 650;
+
+        var stage = document.getElementById("stage");
+        var video = document.getElementById("cam");
+        var drawCanvas = document.getElementById("drawCanvas");
+        var overlay = document.getElementById("overlayCanvas");
+        var dctx = drawCanvas.getContext("2d");
+        var octx = overlay.getContext("2d");
+        var modePill = document.getElementById("modePill");
+        var modeText = document.getElementById("modeText");
+        var chipSwatch = document.getElementById("chipSwatch");
+        var chipName = document.getElementById("chipName");
+        var toastEl = document.getElementById("toast");
+        var flashEl = document.getElementById("flash");
+        var gate = document.getElementById("gate");
+        var gateMsg = document.getElementById("gateMsg");
+        var startBtn = document.getElementById("startBtn");
+
+        var colorIdx = 0;
+        var sizeIdx = 1;
+        var eraserOn = false;
+        var running = false;
+
+        var lastPoint = null;   // last drawn point (stage px)
+        var midPoint = null;    // quadratic smoothing midpoint
+        var smoothTip = null;   // smoothed fingertip for cursor
+        var palmSince = 0, palmFired = false;
+        var fistSince = 0, fistFired = false;
+        var dwellTarget = null, dwellSince = 0;
+        var toastTimer = 0;
+
+        /* ---------- Fun modes & magic state ---------- */
+        var rainbowOn = false, neonOn = false, sparkleOn = false, mirrorOn = false;
+        var stampMode = false, stampIdx = 0;
+        var STAMPS = ["⭐", "❤️", "😊", "🔥", "🌸"];
+        var STAMP_NAMES = ["Star", "Heart", "Smiley", "Fire", "Flower"];
+        var hue = 200;
+        var particles = [];
+        var miniHearts = [];
+        var undoStack = [];
+        var heart = { visible: false, cx: 0, cy: 0, size: 60, alpha: 0 };
+        var flower = { target: 0, bloom: 0, cx: 0, cy: 0 };
+        var cursorState = null, ringState = null;
+        var pinchDown = [false, false];
+        var stampPinchWas = false;
+        var stampHoldSince = 0, stampHoldPt = null, stampHoldFired = false;
+
+        /* ---------- Palette ---------- */
+        var palette = document.getElementById("palette");
+        COLORS.forEach(function (c, i) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "swatch" + (i === 0 ? " active" : "");
+          b.style.background = c.hex;
+          b.title = c.name;
+          b.setAttribute("aria-label", "Color " + c.name);
+          b.setAttribute("data-dwell", "color");
+          b.setAttribute("data-idx", String(i));
+          b.addEventListener("click", function () { setColor(i, true); });
+          palette.appendChild(b);
+        });
+
+        function setColor(i, announce) {
+          colorIdx = i;
+          eraserOn = false;
+          document.getElementById("eraserBtn").classList.remove("on");
+          if (stampMode) {
+            stampMode = false;
+            document.getElementById("stampBtn").classList.remove("on");
+          }
+          var swatches = palette.querySelectorAll(".swatch");
+          for (var k = 0; k < swatches.length; k++) {
+            swatches[k].classList.toggle("active", k === i);
+          }
+          chipSwatch.style.background = COLORS[i].hex;
+          chipName.textContent = COLORS[i].name;
+          if (announce) toast("Color: " + COLORS[i].name);
+        }
+
+        /* ---------- Toolbar buttons ---------- */
+        var sizeBtn = document.getElementById("sizeBtn");
+        var sizeName = document.getElementById("sizeName");
+        var sizeDots = document.getElementById("sizeDots").children;
+        function renderSize() {
+          sizeName.textContent = SIZES[sizeIdx].name;
+          for (var k = 0; k < sizeDots.length; k++) {
+            sizeDots[k].classList.toggle("lit", k <= sizeIdx);
+          }
+        }
+        function cycleSize() {
+          sizeIdx = (sizeIdx + 1) % SIZES.length;
+          renderSize();
+          toast("Brush size: " + SIZES[sizeIdx].name);
+        }
+        sizeBtn.setAttribute("data-dwell", "size");
+        sizeBtn.addEventListener("click", cycleSize);
+        renderSize();
+
+        var eraserBtn = document.getElementById("eraserBtn");
+        eraserBtn.setAttribute("data-dwell", "eraser");
+        function toggleEraser() {
+          eraserOn = !eraserOn;
+          eraserBtn.classList.toggle("on", eraserOn);
+          if (eraserOn) setStampMode(false);
+          toast(eraserOn ? "Eraser on — one finger rubs out" : "Eraser off");
+        }
+        eraserBtn.addEventListener("click", toggleEraser);
+
+        /* ---------- Fun mode buttons ---------- */
+        var rainbowBtn = document.getElementById("rainbowBtn");
+        function toggleRainbow() {
+          rainbowOn = !rainbowOn;
+          rainbowBtn.classList.toggle("on", rainbowOn);
+          if (rainbowOn) { eraserOn = false; eraserBtn.classList.remove("on"); setStampMode(false); }
+          toast(rainbowOn ? "Rainbow brush on — colors cycle as you draw" : "Rainbow brush off");
+        }
+        rainbowBtn.addEventListener("click", toggleRainbow);
+
+        var neonBtn = document.getElementById("neonBtn");
+        function toggleNeon() {
+          neonOn = !neonOn;
+          neonBtn.classList.toggle("on", neonOn);
+          toast(neonOn ? "Neon glow on — lines go electric" : "Neon glow off");
+        }
+        neonBtn.addEventListener("click", toggleNeon);
+
+        var sparkleBtn = document.getElementById("sparkleBtn");
+        function toggleSparkle() {
+          sparkleOn = !sparkleOn;
+          sparkleBtn.classList.toggle("on", sparkleOn);
+          toast(sparkleOn ? "Sparkle trail on" : "Sparkle trail off");
+        }
+        sparkleBtn.addEventListener("click", toggleSparkle);
+
+        var mirrorBtn = document.getElementById("mirrorBtn");
+        function toggleMirror() {
+          mirrorOn = !mirrorOn;
+          mirrorBtn.classList.toggle("on", mirrorOn);
+          liftPen();
+          toast(mirrorOn ? "Mirror mode on — everything draws ×4" : "Mirror mode off");
+        }
+        mirrorBtn.addEventListener("click", toggleMirror);
+
+        var stampBtn = document.getElementById("stampBtn");
+        var stampGlyph = document.getElementById("stampGlyph");
+        function setStampMode(on) {
+          stampMode = on;
+          stampBtn.classList.toggle("on", on);
+        }
+        function cycleStamp() {
+          if (!stampMode) {
+            setStampMode(true);
+            eraserOn = false;
+            eraserBtn.classList.remove("on");
+          } else if (stampIdx < STAMPS.length - 1) {
+            stampIdx++;
+          } else {
+            stampIdx = 0;
+            setStampMode(false);
+            toast("Stamp mode off");
+            return;
+          }
+          stampGlyph.textContent = STAMPS[stampIdx];
+          toast("Stamp: " + STAMP_NAMES[stampIdx] + " — pinch, or hold two fingers still, to stamp");
+        }
+        stampBtn.addEventListener("click", cycleStamp);
+
+        var undoBtn = document.getElementById("undoBtn");
+        undoBtn.addEventListener("click", function () { undoLast(); });
+        document.addEventListener("keydown", function (e) {
+          if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) {
+            e.preventDefault();
+            undoLast();
+          }
+        });
+
+        var clearBtn = document.getElementById("clearBtn");
+        clearBtn.setAttribute("data-dwell", "clear");
+        function clearCanvas(announce) {
+          pushUndo();
+          dctx.save();
+          dctx.setTransform(1, 0, 0, 1, 0, 0);
+          dctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+          dctx.restore();
+          lastPoint = null; midPoint = null;
+          if (announce !== false) toast("Canvas cleared");
+        }
+        clearBtn.addEventListener("click", function () { clearCanvas(true); });
+
+        var saveBtn = document.getElementById("saveBtn");
+        saveBtn.setAttribute("data-dwell", "save");
+        function saveSnapshot() {
+          var w = video.videoWidth || stage.clientWidth;
+          var h = video.videoHeight || stage.clientHeight;
+          var out = document.createElement("canvas");
+          out.width = w; out.height = h;
+          var c = out.getContext("2d");
+          c.fillStyle = "#0a0d1c";
+          c.fillRect(0, 0, w, h);
+          if (video.videoWidth) {
+            // cover-crop the mirrored camera frame to match the stage
+            var stageRatio = stage.clientWidth / stage.clientHeight;
+            var vidRatio = w / h;
+            var sw = w, sh = h, sx = 0, sy = 0;
+            if (vidRatio > stageRatio) { sw = h * stageRatio; sx = (w - sw) / 2; }
+            else { sh = w / stageRatio; sy = (h - sh) / 2; }
+            c.save();
+            c.translate(w, 0); c.scale(-1, 1);
+            c.globalAlpha = 0.9;
+            c.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
+            c.restore();
+          }
+          c.drawImage(drawCanvas, 0, 0, drawCanvas.width, drawCanvas.height, 0, 0, w, h);
+          var a = document.createElement("a");
+          a.download = "air-drawing.png";
+          a.href = out.toDataURL("image/png");
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          flashEl.classList.remove("go");
+          void flashEl.offsetWidth;
+          flashEl.classList.add("go");
+          toast("Snapshot saved as PNG");
+        }
+        saveBtn.addEventListener("click", saveSnapshot);
+
+        document.getElementById("guideToggle").addEventListener("click", function () {
+          document.getElementById("guide").classList.toggle("open");
+        });
+
+        function toast(msg) {
+          toastEl.textContent = msg;
+          toastEl.classList.add("show");
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 1800);
+        }
+
+        /* ---------- Canvas sizing (preserve art on resize) ---------- */
+        function fitCanvas(cv) {
+          var dpr = Math.min(window.devicePixelRatio || 1, 2);
+          var w = Math.round(stage.clientWidth * dpr);
+          var h = Math.round(stage.clientHeight * dpr);
+          if (cv.width === w && cv.height === h) return false;
+          var keep = null;
+          if (cv === drawCanvas && cv.width > 0 && cv.height > 0) {
+            keep = document.createElement("canvas");
+            keep.width = cv.width; keep.height = cv.height;
+            keep.getContext("2d").drawImage(cv, 0, 0);
+          }
+          cv.width = w; cv.height = h;
+          if (keep) {
+            var ctx = cv.getContext("2d");
+            ctx.drawImage(keep, 0, 0, keep.width, keep.height, 0, 0, w, h);
+          }
+          return true;
+        }
+        function fitAll() { fitCanvas(drawCanvas); fitCanvas(overlay); }
+        window.addEventListener("resize", fitAll);
+        fitAll();
+
+        function toStage(lm) {
+          // MediaPipe x is in the raw (unmirrored) frame; the video is shown
+          // mirrored, so flip x to match what the user sees.
+          return {
+            x: (1 - lm.x) * drawCanvas.width,
+            y: lm.y * drawCanvas.height
+          };
+        }
+
+        /* ---------- Mode pill ---------- */
+        var currentMode = "";
+        function setMode(mode, label) {
+          if (mode === currentMode) return;
+          currentMode = mode;
+          modePill.className = "pill mode-" + mode;
+          modeText.textContent = label;
+        }
+
+        /* ---------- Undo ---------- */
+        function pushUndo() {
+          if (drawCanvas.width === 0 || drawCanvas.height === 0) return;
+          var snap = document.createElement("canvas");
+          snap.width = drawCanvas.width;
+          snap.height = drawCanvas.height;
+          snap.getContext("2d").drawImage(drawCanvas, 0, 0);
+          undoStack.push(snap);
+          if (undoStack.length > 25) undoStack.shift();
+        }
+        function undoLast() {
+          if (!undoStack.length) { toast("Nothing to undo yet"); return; }
+          var snap = undoStack.pop();
+          dctx.save();
+          dctx.setTransform(1, 0, 0, 1, 0, 0);
+          dctx.globalCompositeOperation = "source-over";
+          dctx.shadowBlur = 0;
+          dctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+          dctx.drawImage(snap, 0, 0, snap.width, snap.height, 0, 0, drawCanvas.width, drawCanvas.height);
+          dctx.restore();
+          liftPen();
+          toast("Undone");
+        }
+
+        /* ---------- Drawing ---------- */
+        function strokeColor() {
+          if (rainbowOn) return "hsl(" + (hue % 360) + ", 100%, 62%)";
+          return COLORS[colorIdx].hex;
+        }
+        function eachTransform(fn) {
+          var W = drawCanvas.width, H = drawCanvas.height;
+          fn(function (p) { return p; });
+          if (!mirrorOn) return;
+          fn(function (p) { return { x: W - p.x, y: p.y }; });
+          fn(function (p) { return { x: p.x, y: H - p.y }; });
+          fn(function (p) { return { x: W - p.x, y: H - p.y }; });
+        }
+        function strokeTo(pt) {
+          var size = SIZES[sizeIdx].px * (drawCanvas.width / Math.max(stage.clientWidth, 1));
+          dctx.lineCap = "round";
+          dctx.lineJoin = "round";
+          dctx.lineWidth = eraserOn ? size * 2.4 : size;
+          if (eraserOn) {
+            dctx.globalCompositeOperation = "destination-out";
+            dctx.strokeStyle = "rgba(0,0,0,1)";
+            dctx.shadowBlur = 0;
+          } else {
+            dctx.globalCompositeOperation = "source-over";
+            var col = strokeColor();
+            dctx.strokeStyle = col;
+            if (neonOn) {
+              dctx.shadowColor = col;
+              dctx.shadowBlur = size * 1.7;
+            } else {
+              dctx.shadowBlur = 0;
+            }
+            if (rainbowOn) hue = (hue + 5) % 360;
+          }
+          if (!lastPoint) {
+            pushUndo();
+            eachTransform(function (t) {
+              var p = t(pt);
+              dctx.beginPath();
+              dctx.moveTo(p.x, p.y);
+              dctx.lineTo(p.x + 0.01, p.y + 0.01);
+              dctx.stroke();
+            });
+            lastPoint = pt; midPoint = pt;
+            if (sparkleOn && !eraserOn) spawnSparkles(pt);
+            return;
+          }
+          var newMid = { x: (lastPoint.x + pt.x) / 2, y: (lastPoint.y + pt.y) / 2 };
+          var lp = lastPoint, mp = midPoint, nm = newMid;
+          eachTransform(function (t) {
+            var a = t(mp), b = t(lp), c = t(nm);
+            dctx.beginPath();
+            dctx.moveTo(a.x, a.y);
+            dctx.quadraticCurveTo(b.x, b.y, c.x, c.y);
+            dctx.stroke();
+          });
+          lastPoint = pt; midPoint = newMid;
+          if (sparkleOn && !eraserOn) spawnSparkles(pt);
+        }
+        function liftPen() { lastPoint = null; midPoint = null; }
+
+        /* ---------- Sparkles & stamps ---------- */
+        function spawnSparkles(pt) {
+          var scale = drawCanvas.width / Math.max(stage.clientWidth, 1);
+          for (var i = 0; i < 3; i++) {
+            var a = Math.random() * Math.PI * 2;
+            var sp = (0.4 + Math.random() * 1.5) * scale;
+            particles.push({
+              x: pt.x, y: pt.y,
+              vx: Math.cos(a) * sp,
+              vy: Math.sin(a) * sp - 0.7 * scale,
+              life: 1,
+              decay: 0.016 + Math.random() * 0.012,
+              size: (2.5 + Math.random() * 4.5) * scale,
+              color: strokeColor()
+            });
+          }
+          if (particles.length > 420) particles.splice(0, particles.length - 420);
+        }
+        function burstHearts(x, y) {
+          var scale = drawCanvas.width / Math.max(stage.clientWidth, 1);
+          for (var i = 0; i < 14; i++) {
+            var a = Math.random() * Math.PI * 2;
+            var sp = (0.6 + Math.random() * 1.9) * scale;
+            miniHearts.push({
+              x: x, y: y,
+              vx: Math.cos(a) * sp,
+              vy: Math.sin(a) * sp - 1.3 * scale,
+              life: 1,
+              size: (5 + Math.random() * 8) * scale,
+              color: COLORS[colorIdx].hex
+            });
+          }
+          if (miniHearts.length > 120) miniHearts.splice(0, miniHearts.length - 120);
+        }
+        function stampAt(pt) {
+          pushUndo();
+          var scale = drawCanvas.width / Math.max(stage.clientWidth, 1);
+          dctx.save();
+          dctx.globalCompositeOperation = "source-over";
+          dctx.shadowBlur = 0;
+          dctx.font = (64 * scale) + "px serif";
+          dctx.textAlign = "center";
+          dctx.textBaseline = "middle";
+          if (neonOn) {
+            dctx.shadowColor = "rgba(255,255,255,0.85)";
+            dctx.shadowBlur = 20 * scale;
+          }
+          eachTransform(function (t) {
+            var p = t(pt);
+            dctx.fillText(STAMPS[stampIdx], p.x, p.y);
+          });
+          dctx.restore();
+          if (sparkleOn) { spawnSparkles(pt); spawnSparkles(pt); }
+          toast("Stamped " + STAMP_NAMES[stampIdx]);
+        }
+
+        /* ---------- Overlay rendering (cursor, sparkles, magic) ---------- */
+        function heartPath(ctx, cx, cy, s) {
+          ctx.beginPath();
+          ctx.moveTo(cx, cy + s * 0.92);
+          ctx.bezierCurveTo(cx - s * 1.35, cy + s * 0.05, cx - s * 0.72, cy - s * 0.98, cx, cy - s * 0.34);
+          ctx.bezierCurveTo(cx + s * 0.72, cy - s * 0.98, cx + s * 1.35, cy + s * 0.05, cx, cy + s * 0.92);
+          ctx.closePath();
+        }
+        function drawStarShape(x, y, r, color, alpha) {
+          octx.save();
+          octx.globalAlpha = alpha;
+          octx.fillStyle = color;
+          octx.shadowColor = color;
+          octx.shadowBlur = r * 2.2;
+          octx.beginPath();
+          octx.moveTo(x, y - r);
+          octx.quadraticCurveTo(x, y, x + r, y);
+          octx.quadraticCurveTo(x, y, x, y + r);
+          octx.quadraticCurveTo(x, y, x - r, y);
+          octx.quadraticCurveTo(x, y, x, y - r);
+          octx.fill();
+          octx.restore();
+        }
+        function drawFlowerShape(now, scale) {
+          var R = 48 * scale * flower.bloom;
+          if (R <= 0.5) return;
+          var petalCol = COLORS[colorIdx].hex;
+          octx.save();
+          octx.translate(flower.cx, flower.cy);
+          octx.rotate(Math.sin(now / 900) * 0.09);
+          for (var i = 0; i < 6; i++) {
+            octx.save();
+            octx.rotate((Math.PI * 2 / 6) * i + (1 - flower.bloom) * 0.9);
+            octx.beginPath();
+            octx.ellipse(0, -R * 0.62, R * 0.35, R * 0.64, 0, 0, Math.PI * 2);
+            octx.globalAlpha = 0.92;
+            octx.fillStyle = petalCol;
+            octx.shadowColor = petalCol;
+            octx.shadowBlur = 15 * scale;
+            octx.fill();
+            octx.restore();
+          }
+          octx.globalAlpha = 1;
+          octx.beginPath();
+          octx.arc(0, 0, R * 0.34, 0, Math.PI * 2);
+          octx.fillStyle = "#ffd23f";
+          octx.shadowColor = "#ffd23f";
+          octx.shadowBlur = 18 * scale;
+          octx.fill();
+          octx.restore();
+        }
+        function drawCursorShape(pt, mode, scale) {
+          var r = (eraserOn && mode === "draw" ? SIZES[sizeIdx].px * 1.2 + 8 : 15) * scale;
+          octx.beginPath();
+          octx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+          octx.fillStyle = mode === "draw"
+            ? (eraserOn ? "rgba(255,77,109,0.9)" : strokeColor())
+            : "rgba(34,193,255,0.25)";
+          octx.fill();
+          octx.lineWidth = 3 * scale;
+          octx.strokeStyle = "#ffffff";
+          octx.stroke();
+        }
+        function drawRingShape(pt, frac, color, scale) {
+          octx.beginPath();
+          octx.arc(pt.x, pt.y, 30 * scale, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+          octx.lineWidth = 5 * scale;
+          octx.strokeStyle = color;
+          octx.stroke();
+        }
+        function renderLoop() {
+          requestAnimationFrame(renderLoop);
+          var now = performance.now();
+          var scale = overlay.width / Math.max(stage.clientWidth, 1);
+          octx.clearRect(0, 0, overlay.width, overlay.height);
+
+          // Sparkle particles
+          for (var i = particles.length - 1; i >= 0; i--) {
+            var p = particles[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.03 * scale;
+            p.life -= p.decay;
+            if (p.life <= 0) { particles.splice(i, 1); continue; }
+            drawStarShape(p.x, p.y, Math.max(p.size * p.life, 0.6), p.color, Math.min(1, p.life));
+          }
+          // Floating mini hearts from the magic heart burst
+          for (var j = miniHearts.length - 1; j >= 0; j--) {
+            var mh = miniHearts[j];
+            mh.x += mh.vx; mh.y += mh.vy; mh.vy -= 0.015 * scale;
+            mh.life -= 0.02;
+            if (mh.life <= 0) { miniHearts.splice(j, 1); continue; }
+            octx.save();
+            octx.globalAlpha = Math.max(mh.life, 0);
+            octx.fillStyle = mh.color;
+            octx.shadowColor = mh.color;
+            octx.shadowBlur = 10 * scale;
+            heartPath(octx, mh.x, mh.y, mh.size);
+            octx.fill();
+            octx.restore();
+          }
+          // Palm flower bloom animation
+          flower.bloom += (flower.target - flower.bloom) * 0.14;
+          if (flower.bloom > 0.02) drawFlowerShape(now, scale);
+          // Magic heart (pulsing, glowing)
+          heart.alpha += ((heart.visible ? 1 : 0) - heart.alpha) * 0.18;
+          if (heart.alpha > 0.02) {
+            var pulse = 1 + 0.07 * Math.sin(now / 260);
+            var s = heart.size * pulse;
+            var hCol = COLORS[colorIdx].hex;
+            octx.save();
+            octx.globalAlpha = Math.max(heart.alpha, 0);
+            octx.fillStyle = hCol;
+            octx.shadowColor = hCol;
+            octx.shadowBlur = 36 * scale;
+            heartPath(octx, heart.cx, heart.cy, s);
+            octx.fill();
+            octx.fill();
+            octx.globalAlpha = Math.max(heart.alpha, 0) * 0.45;
+            octx.fillStyle = "#ffffff";
+            octx.shadowBlur = 0;
+            heartPath(octx, heart.cx - s * 0.3, heart.cy - s * 0.32, s * 0.32);
+            octx.fill();
+            octx.restore();
+          }
+          // Cursor / stamp preview
+          if (cursorState) {
+            if (stampMode) {
+              octx.save();
+              octx.font = (36 * scale) + "px serif";
+              octx.textAlign = "center";
+              octx.textBaseline = "middle";
+              octx.shadowColor = "rgba(255,210,63,0.9)";
+              octx.shadowBlur = 16 * scale;
+              octx.fillText(STAMPS[stampIdx], cursorState.pt.x, cursorState.pt.y);
+              octx.restore();
+            } else {
+              drawCursorShape(cursorState.pt, cursorState.mode, scale);
+            }
+          }
+          if (ringState) drawRingShape(ringState.pt, ringState.frac, ringState.color, scale);
+        }
+        requestAnimationFrame(renderLoop);
+
+        /* ---------- Dwell selection on the toolbar ---------- */
+        var dwellables = [];
+        function collectDwellables() {
+          dwellables = Array.prototype.slice.call(document.querySelectorAll("[data-dwell]"));
+        }
+        collectDwellables();
+
+        function runDwellAction(el) {
+          var kind = el.getAttribute("data-dwell");
+          if (kind === "color") setColor(parseInt(el.getAttribute("data-idx"), 10), true);
+          else if (kind === "size") cycleSize();
+          else if (kind === "eraser") toggleEraser();
+          else if (kind === "rainbow") toggleRainbow();
+          else if (kind === "neon") toggleNeon();
+          else if (kind === "sparkle") toggleSparkle();
+          else if (kind === "mirror") toggleMirror();
+          else if (kind === "stamp") cycleStamp();
+          else if (kind === "undo") undoLast();
+          else if (kind === "clear") clearCanvas(true);
+          else if (kind === "save") saveSnapshot();
+        }
+
+        function handleDwell(clientPt, now) {
+          var hit = null;
+          for (var i = 0; i < dwellables.length; i++) {
+            var r = dwellables[i].getBoundingClientRect();
+            if (clientPt.x >= r.left && clientPt.x <= r.right && clientPt.y >= r.top && clientPt.y <= r.bottom) {
+              hit = dwellables[i];
+              break;
+            }
+          }
+          if (!hit) {
+            if (dwellTarget) dwellTarget.style.setProperty("--dwell", 0);
+            dwellTarget = null;
+            return;
+          }
+          if (hit !== dwellTarget) {
+            if (dwellTarget) dwellTarget.style.setProperty("--dwell", 0);
+            dwellTarget = hit;
+            dwellSince = now;
+          }
+          var frac = (now - dwellSince) / DWELL_MS;
+          hit.style.setProperty("--dwell", Math.min(frac, 1).toFixed(3));
+          if (frac >= 1) {
+            runDwellAction(hit);
+            hit.style.setProperty("--dwell", 0);
+            dwellTarget = null; // must leave and re-enter to trigger again
+            dwellSince = now + 1e9;
+          }
+        }
+
+        /* ---------- Gesture classification ---------- */
+        function fingerUp(lm, tip, pip) { return lm[tip].y < lm[pip].y; }
+
+        function classify(lm) {
+          var index = fingerUp(lm, 8, 6);
+          var middle = fingerUp(lm, 12, 10);
+          var ring = fingerUp(lm, 16, 14);
+          var pinky = fingerUp(lm, 20, 18);
+          if (!index && !middle && !ring && !pinky) return "fist";
+          if (index && middle && ring && pinky) return "palm";
+          if (index && middle && !ring && !pinky) return "move";
+          if (index && !middle && !ring && !pinky) return "draw";
+          return "other";
+        }
+
+        /* ---------- MediaPipe results ---------- */
+        function dist2d(a, b) {
+          var dx = a.x - b.x, dy = a.y - b.y;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+        function palmCenter(lm) {
+          var ids = [0, 5, 9, 13, 17], sx = 0, sy = 0;
+          for (var i = 0; i < ids.length; i++) { sx += lm[ids[i]].x; sy += lm[ids[i]].y; }
+          return toStage({ x: sx / ids.length, y: sy / ids.length });
+        }
+        function handleHeartPinch(lm, idx) {
+          var down = dist2d(lm[4], lm[8]) < 0.042;
+          if (down && !pinchDown[idx]) {
+            pinchDown[idx] = true;
+            setColor((colorIdx + 1) % COLORS.length, false);
+            toast("Heart color: " + COLORS[colorIdx].name);
+            burstHearts(heart.cx, heart.cy);
+          } else if (!down) {
+            pinchDown[idx] = false;
+          }
+        }
+
+        function onResults(results) {
+          if (!running) { running = true; }
+          var now = performance.now();
+          var allHands = results.multiHandLandmarks;
+          if (!allHands || allHands.length === 0) {
+            setMode("idle", "Show your hand");
+            liftPen();
+            smoothTip = null;
+            palmSince = 0; fistSince = 0; fistFired = false;
+            flower.target = 0;
+            heart.visible = false;
+            cursorState = null; ringState = null;
+            stampHoldSince = 0; stampHoldFired = false; stampPinchWas = false;
+            if (dwellTarget) { dwellTarget.style.setProperty("--dwell", 0); dwellTarget = null; }
+            return;
+          }
+
+          /* ----- Two-hand heart: index tips touching on top, thumbs below ----- */
+          if (allHands.length >= 2) {
+            var hA = allHands[0], hB = allHands[1];
+            var idxMid = { x: (hA[8].x + hB[8].x) / 2, y: (hA[8].y + hB[8].y) / 2 };
+            var thMid = { x: (hA[4].x + hB[4].x) / 2, y: (hA[4].y + hB[4].y) / 2 };
+            if (dist2d(hA[8], hB[8]) < 0.075 && dist2d(hA[4], hB[4]) < 0.075 && idxMid.y < thMid.y - 0.02) {
+              var cS = toStage({ x: (idxMid.x + thMid.x) / 2, y: (idxMid.y + thMid.y) / 2 });
+              if (!heart.visible) {
+                burstHearts(cS.x, cS.y);
+                toast("Magic heart! Pinch either hand to change its color");
+              }
+              heart.visible = true;
+              heart.cx = cS.x; heart.cy = cS.y;
+              heart.size = Math.max(24, dist2d(idxMid, thMid) * drawCanvas.height * 0.6);
+              handleHeartPinch(hA, 0);
+              handleHeartPinch(hB, 1);
+              liftPen();
+              flower.target = 0; palmSince = 0; fistSince = 0;
+              cursorState = null; ringState = null;
+              if (dwellTarget) { dwellTarget.style.setProperty("--dwell", 0); dwellTarget = null; }
+              setMode("gesture", "Magic heart");
+              return;
+            }
+          }
+          heart.visible = false;
+
+          /* ----- Single hand ----- */
+          var lm = allHands[0];
+          var tip = toStage(lm[8]);
+          if (!smoothTip) smoothTip = tip;
+          smoothTip = {
+            x: smoothTip.x + (tip.x - smoothTip.x) * 0.55,
+            y: smoothTip.y + (tip.y - smoothTip.y) * 0.55
+          };
+          var gesture = classify(lm);
+          var clientPt = {
+            x: smoothTip.x / drawCanvas.width * stage.clientWidth,
+            y: smoothTip.y / drawCanvas.height * stage.clientHeight
+          };
+          var pinch = dist2d(lm[4], lm[8]) < 0.045;
+
+          // Toolbar dwell only while the pen is "up" (two fingers) or hovering in move/other
+          if (gesture === "move" || gesture === "other") {
+            handleDwell(clientPt, now);
+          } else if (dwellTarget) {
+            dwellTarget.style.setProperty("--dwell", 0);
+            dwellTarget = null;
+          }
+
+          ringState = null;
+
+          // Stamp mode: a quick pinch stamps right away (checked before fist,
+          // because a pinching hand can classify as a fist)
+          if (stampMode && pinch) {
+            liftPen();
+            if (!stampPinchWas) {
+              stampPinchWas = true;
+              stampAt(smoothTip);
+            }
+            cursorState = { pt: smoothTip, mode: "move" };
+            setMode("gesture", "Stamp " + STAMP_NAMES[stampIdx] + " — pinch to stamp");
+            return;
+          }
+          if (!pinch) stampPinchWas = false;
+
+          if (gesture === "fist") {
+            liftPen(); palmSince = 0; flower.target = 0;
+            if (!fistSince) { fistSince = now; fistFired = false; }
+            var ffrac = (now - fistSince) / FIST_HOLD_MS;
+            if (!fistFired && ffrac >= 1) {
+              fistFired = true;
+              clearCanvas(true);
+            }
+            setMode("gesture", fistFired ? "Cleared" : "Hold fist — clearing…");
+            cursorState = { pt: smoothTip, mode: "move" };
+            if (!fistFired) ringState = { pt: smoothTip, frac: Math.min(ffrac, 1), color: "#ff4d6d" };
+            return;
+          }
+          fistSince = 0;
+
+          if (gesture === "palm") {
+            liftPen();
+            if (!palmSince) palmSince = now;
+            var pc = palmCenter(lm);
+            flower.cx = pc.x; flower.cy = pc.y;
+            var heldMs = now - palmSince;
+            flower.target = heldMs >= FLOWER_HOLD_MS ? 1 : 0;
+            setMode("gesture", flower.target ? "Flower power!" : "Hold palm — a flower blooms…");
+            cursorState = { pt: smoothTip, mode: "move" };
+            if (!flower.target) ringState = { pt: smoothTip, frac: Math.min(heldMs / FLOWER_HOLD_MS, 1), color: "#3ddc84" };
+            return;
+          }
+          palmSince = 0; flower.target = 0;
+
+          if (stampMode) {
+            liftPen();
+            // Two fingers held still over the canvas (not the toolbar) also stamps
+            var tb = document.getElementById("toolbar").getBoundingClientRect();
+            var overToolbar = clientPt.x >= tb.left && clientPt.x <= tb.right && clientPt.y >= tb.top && clientPt.y <= tb.bottom;
+            if (gesture === "move" && !overToolbar) {
+              if (!stampHoldPt || Math.abs(clientPt.x - stampHoldPt.x) > 16 || Math.abs(clientPt.y - stampHoldPt.y) > 16) {
+                stampHoldPt = { x: clientPt.x, y: clientPt.y };
+                stampHoldSince = now;
+                stampHoldFired = false;
+              } else if (!stampHoldFired && now - stampHoldSince >= 500) {
+                stampHoldFired = true;
+                stampAt(smoothTip);
+              }
+            } else {
+              stampHoldSince = 0; stampHoldFired = false;
+            }
+            setMode("gesture", "Stamp " + STAMP_NAMES[stampIdx] + " — pinch to stamp");
+            cursorState = { pt: smoothTip, mode: "move" };
+            return;
+          }
+
+          if (gesture === "draw") {
+            setMode(eraserOn ? "erase" : "draw", eraserOn ? "Erasing" : (rainbowOn ? "Rainbow drawing" : "Drawing"));
+            strokeTo(smoothTip);
+            cursorState = { pt: smoothTip, mode: "draw" };
+          } else {
+            liftPen();
+            setMode("move", "Move — pen lifted");
+            cursorState = { pt: smoothTip, mode: "move" };
+          }
+        }
+
+        /* ---------- Start / camera handling ---------- */
+        var mpCamera = null;
+        var hands = null;
+
+        function gateError(title, detail) {
+          gate.classList.remove("hidden");
+          gateMsg.className = "error";
+          gateMsg.textContent = detail;
+          startBtn.disabled = false;
+          startBtn.textContent = "Try Again";
+          setMode("idle", "Camera off");
+        }
+
+        startBtn.addEventListener("click", function () {
+          startBtn.disabled = true;
+          startBtn.textContent = "Starting…";
+          gateMsg.className = "";
+          gateMsg.textContent = "Asking for camera permission…";
+
+          if (typeof Hands === "undefined" || typeof Camera === "undefined") {
+            gateError("", "The hand-tracking library could not load. Check your internet connection and try again.");
+            return;
+          }
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            gateError("", "This browser does not expose a camera API. Try Chrome or Edge on a laptop.");
+            return;
+          }
+
+          try {
+            if (!hands) {
+              hands = new Hands({
+                locateFile: function (f) {
+                  return "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/" + f;
+                }
+              });
+              hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 0,
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.5
+              });
+              hands.onResults(onResults);
+            }
+            if (!mpCamera) {
+              mpCamera = new Camera(video, {
+                onFrame: function () { return hands.send({ image: video }); },
+                width: 1280,
+                height: 720
+              });
+            }
+            var startPromise = mpCamera.start();
+            if (startPromise && startPromise.then) {
+              startPromise.then(function () {
+                stage.classList.remove("no-cam");
+                gate.classList.add("hidden");
+                setMode("idle", "Show your hand");
+                toast("Camera on — hold up one finger and draw");
+              }).catch(function (err) {
+                handleCamError(err);
+              });
+            }
+          } catch (err) {
+            handleCamError(err);
+          }
+        });
+
+        function handleCamError(err) {
+          var name = err && err.name ? err.name : "";
+          if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+            gateError("", "Camera permission was denied. Click the camera icon in your browser's address bar, allow access, then press Try Again. Nothing is recorded or uploaded — the video never leaves this device.");
+          } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+            gateError("", "No camera was found on this device. Plug in a webcam and press Try Again.");
+          } else if (name === "NotReadableError") {
+            gateError("", "The camera is busy in another app. Close it there and press Try Again.");
+          } else {
+            gateError("", "The camera could not be started (" + (name || "unknown error") + "). Press Try Again, or reload the page.");
+          }
+        }
+
+        setColor(0, false);
+      })();
+    </script>
+  </body>
+</html>
