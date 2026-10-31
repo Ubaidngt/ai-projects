@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="color-scheme" content="dark" />
     <link rel="icon" href="data:," />
     <title>Air Drawing</title>
@@ -14,58 +14,101 @@
     />
     <style>
       :root {
-        --bg: #0a0d1c;
-        --panel: rgba(16, 20, 40, 0.82);
-        --panel-border: rgba(255, 255, 255, 0.12);
-        --ink: #f2f4ff;
-        --ink-dim: #a7add0;
+        --bg: #070a18;
+        --bg-2: #0d1126;
+        --panel: linear-gradient(160deg, rgba(28, 33, 62, 0.78), rgba(12, 15, 32, 0.82));
+        --panel-solid: rgba(15, 18, 38, 0.88);
+        --panel-border: rgba(255, 255, 255, 0.14);
+        --panel-highlight: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 0 0 1px rgba(255,255,255,0.02);
+        --ink: #f4f6ff;
+        --ink-dim: #b3b9d9;
+        --ink-faint: #8b92b8;
         --accent: #ffd23f;
+        --accent-strong: #ffdc5c;
+        --accent-ink: #1a1400;
         --accent-2: #22c1ff;
+        --accent-2-strong: #4ccfff;
         --danger: #ff4d6d;
         --good: #3ddc84;
-        --radius: 18px;
+        --radius: 20px;
+        --radius-sm: 14px;
+        --shadow-lg: 0 24px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35);
+        --shadow-md: 0 12px 32px rgba(0,0,0,0.45);
+        --shadow-sm: 0 6px 18px rgba(0,0,0,0.35);
+        --ease: cubic-bezier(.22,1,.36,1);
+        --header-pad: clamp(10px, 2.2vw, 18px);
+        --guide-top: clamp(96px, 16vh, 118px);
+        --dock-w: clamp(64px, 8vw, 76px);
+        --tap: 44px;
       }
-      * { box-sizing: border-box; }
-      html, body { height: 100%; }
+      *, *::before, *::after { box-sizing: border-box; }
+      html {
+        height: 100%;
+        height: 100dvh;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
       body {
         margin: 0;
-        font-family: "Nunito", system-ui, sans-serif;
+        min-height: 100%;
+        min-height: 100dvh;
+        height: 100%;
+        height: 100dvh;
+        width: 100%;
+        font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: clamp(13px, 1.6vw, 15px);
+        line-height: 1.45;
         background:
-          radial-gradient(900px 500px at 12% -10%, rgba(77, 124, 255, 0.25), transparent 60%),
-          radial-gradient(800px 500px at 95% 110%, rgba(255, 59, 107, 0.18), transparent 60%),
-          var(--bg);
+          radial-gradient(60vw 42vh at 8% -8%, rgba(77, 124, 255, 0.28), transparent 62%),
+          radial-gradient(55vw 40vh at 98% 108%, rgba(255, 59, 107, 0.20), transparent 62%),
+          radial-gradient(40vw 30vh at 88% -6%, rgba(34,193,255,0.12), transparent 60%),
+          linear-gradient(180deg, #0b0f22 0%, var(--bg) 100%);
         color: var(--ink);
         overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
       }
+      button { font: inherit; }
+      button:focus-visible, a:focus-visible {
+        outline: 2px solid var(--accent-2);
+        outline-offset: 3px;
+      }
+      img, video, canvas { max-width: 100%; }
 
-      /* ---------- Stage ---------- */
+      /* ---------- Stage: always fills the viewport ---------- */
       #stage {
         position: fixed;
         inset: 0;
+        width: 100vw;
+        width: 100dvw;
+        height: 100vh;
+        height: 100dvh;
         overflow: hidden;
+        isolation: isolate;
       }
       #cam {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
         object-fit: cover;
+        object-position: center;
         transform: scaleX(-1);
         background: #05060d;
       }
       #drawCanvas, #overlayCanvas {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        display: block;
         pointer-events: none;
       }
       #stage.no-cam #cam { display: none; }
       #stage.no-cam {
         background:
-          radial-gradient(700px 420px at 20% 15%, rgba(34, 193, 255, 0.16), transparent 60%),
-          radial-gradient(700px 420px at 85% 85%, rgba(255, 210, 63, 0.12), transparent 60%),
-          #0d1126;
+          radial-gradient(70vw 46vh at 18% 12%, rgba(34, 193, 255, 0.16), transparent 62%),
+          radial-gradient(64vw 44vh at 86% 88%, rgba(255, 210, 63, 0.12), transparent 62%),
+          radial-gradient(50vw 36vh at 50% 110%, rgba(176,107,255,0.10), transparent 60%),
+          var(--bg-2);
       }
 
       /* ---------- Header ---------- */
@@ -75,364 +118,557 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 12px;
-        padding: 14px 16px;
+        gap: clamp(8px, 2vw, 16px);
+        padding: calc(var(--header-pad) + env(safe-area-inset-top, 0px)) calc(var(--header-pad) + env(safe-area-inset-right, 0px)) var(--header-pad) calc(var(--header-pad) + env(safe-area-inset-left, 0px));
         pointer-events: none;
         z-index: 30;
       }
-      .brand { pointer-events: auto; }
+      .brand { pointer-events: auto; min-width: 0; flex: 1 1 auto; }
       .brand h1 {
         font-family: "Baloo 2", "Nunito", sans-serif;
-        font-size: clamp(26px, 4vw, 40px);
-        line-height: 1;
+        font-size: clamp(24px, 5.2vw, 42px);
+        line-height: 0.95;
         margin: 0;
-        letter-spacing: 0.5px;
-        text-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
+        letter-spacing: 0.02em;
+        font-weight: 800;
+        text-shadow: 0 6px 28px rgba(0,0,0,0.65), 0 1px 0 rgba(0,0,0,0.4);
+        white-space: nowrap;
       }
       .brand h1 .a { color: var(--accent); }
       .brand h1 .b { color: var(--accent-2); }
       .brand p {
-        margin: 4px 0 0;
-        font-size: 13px;
+        margin: 6px 0 0;
+        font-size: clamp(12px, 1.8vw, 13.5px);
         font-weight: 700;
+        line-height: 1.35;
         color: var(--ink-dim);
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+        text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+        max-width: 34ch;
       }
       .status-stack {
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        gap: 8px;
+        gap: clamp(6px, 1.2vw, 8px);
         pointer-events: auto;
+        flex: none;
+        max-width: 52vw;
+      }
+      /* Shared glass surface */
+      .pill, .color-chip, #objectBar, #guide, #toolbar, #toast {
+        background: var(--panel);
+        background-color: var(--panel-solid);
+        border: 1px solid var(--panel-border);
+        box-shadow: var(--panel-highlight), var(--shadow-md);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
       }
       .pill {
         display: inline-flex;
         align-items: center;
         gap: 9px;
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
         border-radius: 999px;
         padding: 8px 14px;
+        min-height: 36px;
         font-weight: 800;
-        font-size: 14px;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        font-size: clamp(12.5px, 1.8vw, 14px);
         white-space: nowrap;
+        max-width: 100%;
       }
       .pill .dot {
         width: 11px; height: 11px;
         border-radius: 50%;
         background: #6b7194;
         flex: none;
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.10);
       }
-      .pill.mode-draw .dot { background: var(--good); }
+      .pill.mode-draw .dot { background: var(--good); box-shadow: 0 0 10px rgba(61,220,132,0.8), 0 0 0 3px rgba(255,255,255,0.08); animation: dotPulse 1.6s ease-in-out infinite; }
       .pill.mode-move .dot { background: var(--accent-2); }
       .pill.mode-erase .dot { background: var(--danger); }
       .pill.mode-gesture .dot { background: var(--accent); }
-      .color-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
+      .pill.mode-latdraw .dot { background: var(--good); box-shadow: 0 0 10px rgba(61,220,132,0.8), 0 0 0 3px rgba(255,255,255,0.08); }
+      .pill.mode-latobject .dot { background: #7ee7ff; box-shadow: 0 0 12px #22c1ff, 0 0 0 3px rgba(255,255,255,0.08); }
+      /* ---------- Big mode-switch banner ---------- */
+      #modeBanner {
+        position: absolute;
+        top: 17%; left: 50%;
+        transform: translate(-50%, -50%) scale(.88);
+        z-index: 45;
+        font-family: "Baloo 2", "Nunito", sans-serif;
+        font-size: clamp(32px, 8vw, 62px);
+        font-weight: 800;
+        letter-spacing: .01em;
+        white-space: nowrap;
+        max-width: 94vw;
+        padding: clamp(12px, 2.6vw, 20px) clamp(22px, 5vw, 40px);
+        border-radius: 26px;
         background: var(--panel);
+        background-color: var(--panel-solid);
         border: 1px solid var(--panel-border);
+        box-shadow: var(--panel-highlight), var(--shadow-lg), 0 0 44px rgba(255,150,40,0.18);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        opacity: 0;
+        pointer-events: none;
+        text-align: center;
+      }
+      #modeBanner.show { animation: bannerPop 1.6s var(--ease) both; }
+      @keyframes bannerPop {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(.85); }
+        12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.03); }
+      }
+      @keyframes dotPulse { 0%,100%{ transform: scale(1);} 50%{ transform: scale(1.18);} }
+      @keyframes fadeSlideIn { from{ opacity:0; transform: translateY(-4px);} to{ opacity:1; transform: translateY(0);} }
+
+      /* ---------- Object Mode chip row ---------- */
+      #objectBar {
+        position: absolute;
+        top: clamp(86px, 15vh, 112px);
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px) scale(.98);
+        z-index: 28;
+        display: none;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        padding: 7px;
+        opacity: 0;
+        transition: opacity .22s var(--ease), transform .22s var(--ease);
+        width: max-content;
+        max-width: min(94vw, 560px);
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      #objectBar.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      #objectBar .obj-label {
+        font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+        color: var(--accent-2); padding: 0 6px 0 8px; white-space: nowrap;
+      }
+      .obj-chip {
+        --dwell: 0;
+        position: relative;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(255,255,255,0.07);
+        color: var(--ink);
+        font-weight: 800;
+        font-size: clamp(12px, 1.7vw, 13px);
+        border-radius: 999px;
+        padding: 8px 14px;
+        min-height: 36px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+      }
+      .obj-chip:hover { background: rgba(255,255,255,0.16); transform: translateY(-1px); }
+      .obj-chip:active { transform: scale(.96); }
+      .obj-chip.active { background: linear-gradient(180deg, var(--accent-2-strong), var(--accent-2)); border-color: transparent; color: #042635; box-shadow: 0 6px 18px rgba(34,193,255,0.35); }
+      .obj-chip::after {
+        content: ""; position: absolute; inset: -5px; border-radius: 999px;
+        background: conic-gradient(var(--accent) calc(var(--dwell) * 1turn), transparent 0);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+        opacity: var(--dwell); pointer-events: none;
+      }
+      .color-chip {
+        display: inline-flex; align-items: center; gap: 8px;
         border-radius: 999px;
         padding: 6px 12px 6px 7px;
-        font-size: 13px;
+        min-height: 34px;
+        font-size: clamp(12px, 1.7vw, 13px);
         font-weight: 800;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        max-width: 100%;
       }
       .color-chip .sw {
-        width: 20px; height: 20px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.75);
-        background: #ff3b6b;
+        width: 20px; height: 20px; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.85);
+        background: #ff3b6b; flex: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.5);
+        transition: background .2s ease;
       }
+      #chipName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
       /* ---------- Gesture guide ---------- */
       #guide {
         position: absolute;
-        top: 110px;
-        right: 16px;
+        top: calc(var(--guide-top) + 50px);
+        right: max(14px, env(safe-area-inset-right));
         z-index: 25;
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
         border-radius: var(--radius);
-        padding: 12px 14px;
-        width: 248px;
-        max-height: calc(100vh - 150px);
+        padding: 14px 15px;
+        width: min(264px, calc(100vw - 110px));
+        max-height: calc(100dvh - 200px);
+        transition: opacity .28s var(--ease), transform .28s var(--ease), visibility 0s linear 0s;
         overflow-y: auto;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.25) transparent;
+        animation: fadeSlideIn .3s var(--ease) both;
       }
+      #guide::-webkit-scrollbar { width: 5px; }
+      #guide::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 99px; }
       #guide h2 {
-        margin: 0 0 8px;
+        margin: 0 0 10px;
         font-family: "Baloo 2", sans-serif;
-        font-size: 15px;
-        letter-spacing: 0.4px;
+        font-size: clamp(14px, 2vw, 16px);
+        letter-spacing: .02em;
         color: var(--accent);
+        display: flex; align-items: center; gap: 8px;
       }
+      #guide h2::after { content:""; flex:1; height:1px; background: linear-gradient(90deg, rgba(255,210,63,0.45), transparent); }
       #guide ul { margin: 0; padding: 0; list-style: none; }
       #guide li {
-        display: flex;
-        gap: 9px;
+        display: flex; flex-wrap: wrap; column-gap: 9px; row-gap: 1px;
         align-items: baseline;
-        padding: 4px 0;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--ink);
+        padding: 6px 0;
+        font-size: clamp(12.5px, 1.6vw, 13px);
+        font-weight: 600; color: var(--ink);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
       }
-      #guide li b { color: var(--accent-2); font-weight: 800; white-space: nowrap; }
-      #guide li span { color: var(--ink-dim); }
-      #guideToggle {
-        position: absolute;
-        top: 110px;
-        right: 16px;
-        z-index: 26;
-        display: none;
+      #guide li:last-child { border-bottom: 0; padding-bottom: 2px; }
+      #guide li b { color: var(--accent-2); font-weight: 800; }
+      #guide li span { color: var(--ink-dim); flex: 1 1 108px; min-width: 0; }
+      #guideToggle { display: none; }
+      /* Guide show/hide button: round glass "?" pinned to the
+         BOTTOM-RIGHT corner of the screen with a safe margin, so it
+         never sits mid-screen and never collides with the header
+         pills or the guide panel. One fixed spot in both states
+         (panel shown or hidden), high z-index above the header, and
+         dwell-selectable like the toolbar controls (--dwell ring). */
+      #guideBtn {
+        --dwell: 0;
+        position: fixed;
+        bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+        right: calc(18px + env(safe-area-inset-right, 0px));
+        top: auto;
+        left: auto;
+        z-index: 48;
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        border: 1px solid var(--panel-border);
+        background: var(--panel);
+        background-color: var(--panel-solid);
+        box-shadow: var(--panel-highlight), var(--shadow-md);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        color: var(--accent);
+        font-family: "Baloo 2", "Nunito", sans-serif;
+        font-size: 19px; font-weight: 800; line-height: 1;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        transition: background .16s ease, color .16s ease, transform .16s var(--ease);
+        touch-action: manipulation;
+        user-select: none; -webkit-user-select: none;
+      }
+      #guideBtn:hover { background: rgba(255,255,255,0.16); transform: translateY(-1px); }
+      #guideBtn:active { transform: scale(.94); }
+      #guideBtn.off { color: var(--ink-dim); }
+      #guideBtn::after {
+        content: ""; position: absolute; inset: -6px; border-radius: 50%;
+        background: conic-gradient(var(--accent) calc(var(--dwell) * 1turn), transparent 0);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+        opacity: var(--dwell); pointer-events: none;
+      }
+      #muteBtn { min-height: 36px; padding: 6px 11px; font-size: 15px; line-height: 1; }
+      /* Guide hidden (desktop / tablet): slide + fade out, button stays */
+      @media (min-width: 761px) {
+        #stage.guide-off #guide {
+          opacity: 0;
+          transform: translateX(18px);
+          visibility: hidden;
+          pointer-events: none;
+          transition: opacity .28s var(--ease), transform .28s var(--ease), visibility 0s linear .28s;
+        }
       }
 
-      /* ---------- Toolbar (left side dock) ---------- */
+      /* ---------- Toolbar (left dock on desktop) ---------- */
       #toolbar {
         position: absolute;
         left: max(12px, env(safe-area-inset-left));
         top: 50%;
         transform: translateY(-50%);
         z-index: 30;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 7px;
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
-        border-radius: 28px;
+        display: flex; flex-direction: column; align-items: center;
+        gap: clamp(6px, 1vh, 8px);
+        border-radius: 999px;
         padding: 12px 9px;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
-        width: 72px;
-        max-height: calc(100vh - 180px);
-        overflow-y: auto;
-        overflow-x: hidden;
+        width: var(--dock-w);
+        max-height: calc(100dvh - 168px);
+        overflow-y: auto; overflow-x: hidden;
         scrollbar-width: none;
+        animation: dockIn .35s var(--ease) both;
       }
+      @keyframes dockIn { from{ opacity:0; transform: translateY(-50%) translateX(-8px);} to{ opacity:1; transform: translateY(-50%) translateX(0);} }
       #toolbar::-webkit-scrollbar { display: none; }
       #toolbar .tool {
-        width: 44px;
-        height: 44px;
-        padding: 0;
-        justify-content: center;
-        border-radius: 50%;
-        flex: none;
+        width: var(--tap); height: var(--tap);
+        padding: 0; justify-content: center;
+        border-radius: 50%; flex: none;
       }
       #toolbar .tool .lbl { display: none; }
       #toolbar #sizeBtn {
-        width: auto;
-        min-width: 44px;
-        padding: 0 9px;
-        border-radius: 999px;
-        font-size: 14px;
+        width: auto; min-width: var(--tap);
+        padding: 0 10px; border-radius: 999px; font-size: 14px;
       }
       #toolbar .size-dots { display: none; }
       .palette {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 7px;
-        align-items: center;
-        justify-items: center;
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 7px; align-items: center; justify-items: center;
       }
       .swatch {
-        --dwell: 0;
-        position: relative;
-        width: 24px; height: 24px;
-        border-radius: 50%;
-        border: 3px solid transparent;
-        padding: 0;
-        cursor: pointer;
-        flex: none;
-        transition: transform 0.15s ease, border-color 0.15s ease;
+        --dwell: 0; position: relative;
+        width: 26px; height: 26px; border-radius: 50%;
+        border: 3px solid transparent; padding: 0; cursor: pointer; flex: none;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.35), inset 0 1px 2px rgba(255,255,255,0.45);
+        transition: transform .16s var(--ease), border-color .16s ease, box-shadow .16s ease;
       }
-      .swatch:hover { transform: scale(1.12); }
-      .swatch.active { border-color: #fff; transform: scale(1.14); }
+      .swatch:hover { transform: scale(1.14); }
+      .swatch:active { transform: scale(.94); }
+      .swatch.active { border-color: #fff; transform: scale(1.16); box-shadow: 0 0 0 2px rgba(255,255,255,0.25), 0 6px 14px rgba(0,0,0,0.4); }
       .swatch::after, .tool::after {
-        content: "";
-        position: absolute;
-        inset: -6px;
-        border-radius: 50%;
+        content: ""; position: absolute; inset: -6px; border-radius: 50%;
         background: conic-gradient(var(--accent) calc(var(--dwell) * 1turn), transparent 0);
         -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
         mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-        opacity: var(--dwell);
-        pointer-events: none;
+        opacity: var(--dwell); pointer-events: none;
       }
-      .divider { height: 1px; width: 72%; align-self: center; background: rgba(255, 255, 255, 0.16); margin: 2px 0; flex: none; }
+      .divider { height: 1px; width: 68%; align-self: center; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent); margin: 3px 0; flex: none; }
       .tool {
-        --dwell: 0;
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(255, 255, 255, 0.07);
+        --dwell: 0; position: relative;
+        display: inline-flex; align-items: center; gap: 7px;
+        border: 1px solid rgba(255,255,255,0.15);
+        background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
         color: var(--ink);
-        font-family: "Nunito", sans-serif;
-        font-weight: 800;
-        font-size: 13.5px;
-        border-radius: 999px;
-        padding: 9px 14px;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: background 0.15s ease, transform 0.15s ease;
+        font-weight: 800; font-size: 13.5px;
+        border-radius: 999px; padding: 9px 14px;
+        min-height: var(--tap);
+        cursor: pointer; white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.10);
+        transition: background .16s ease, border-color .16s ease, transform .16s var(--ease), box-shadow .16s ease, color .16s ease;
+        touch-action: manipulation;
+        user-select: none; -webkit-user-select: none;
       }
-      .tool:hover { background: rgba(255, 255, 255, 0.15); }
-      .tool:active { transform: scale(0.96); }
-      .tool.on { background: var(--danger); border-color: var(--danger); color: #fff; }
-      .tool.fx.on { background: var(--accent-2); border-color: var(--accent-2); color: #06222f; }
-      .tool.fx.on:hover { background: #4ccfff; }
+      .tool:hover { background: rgba(255,255,255,0.17); transform: translateY(-1px); box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.14); }
+      .tool:active { transform: scale(.95); }
+      .tool.on { background: linear-gradient(180deg, #ff6b87, var(--danger)); border-color: transparent; color: #fff; box-shadow: 0 8px 20px rgba(255,77,109,0.35); }
+      .tool.fx.on { background: linear-gradient(180deg, var(--accent-2-strong), var(--accent-2)); border-color: transparent; color: #042635; box-shadow: 0 8px 20px rgba(34,193,255,0.35); }
+      .tool.fx.on:hover { background: linear-gradient(180deg, #6fd6ff, var(--accent-2-strong)); }
       .tool .glyph { font-size: 17px; line-height: 1; }
-      .tool svg { width: 17px; height: 17px; flex: none; }
-      .tool.save { background: var(--accent); border-color: var(--accent); color: #191104; }
-      .tool.save:hover { background: #ffdc5c; }
+      .tool svg { width: 18px; height: 18px; flex: none; }
+      .tool.save { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); border-color: transparent; color: var(--accent-ink); box-shadow: 0 8px 22px rgba(255,210,63,0.32), inset 0 1px 0 rgba(255,255,255,0.5); }
+      .tool.save:hover { background: linear-gradient(180deg, #ffe27a, var(--accent-strong)); }
       .size-dots { display: inline-flex; gap: 3px; align-items: flex-end; }
-      .size-dots i { display: block; border-radius: 50%; background: currentColor; opacity: 0.35; }
+      .size-dots i { display: block; border-radius: 50%; background: currentColor; opacity: .35; transition: opacity .15s ease; }
       .size-dots i:nth-child(1) { width: 5px; height: 5px; }
       .size-dots i:nth-child(2) { width: 8px; height: 8px; }
       .size-dots i:nth-child(3) { width: 12px; height: 12px; }
       .size-dots i.lit { opacity: 1; }
 
-      /* ---------- Start / error overlay ---------- */
+      /* ---------- Start / gate overlay ---------- */
       #gate {
-        position: absolute;
-        inset: 0;
-        z-index: 50;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        background: rgba(5, 7, 16, 0.55);
+        position: absolute; inset: 0; z-index: 50;
+        display: flex; align-items: center; justify-content: center;
+        padding: clamp(10px, 3vw, 22px);
+        padding-top: calc(clamp(10px, 3vw, 22px) + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(clamp(10px, 3vw, 22px) + env(safe-area-inset-bottom, 0px));
+        background:
+          radial-gradient(70vw 50vh at 50% -10%, rgba(34,193,255,0.14), transparent 60%),
+          rgba(4, 6, 14, 0.62);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
       }
       #gate.hidden { display: none; }
       .gate-card {
-        max-width: 520px;
-        width: 100%;
-        background: rgba(17, 21, 44, 0.94);
-        border: 1px solid var(--panel-border);
-        border-radius: 26px;
-        padding: 32px 30px;
+        margin: auto;
+        width: min(540px, 100%);
+        max-height: calc(100dvh - clamp(20px, 6vw, 44px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        background: linear-gradient(165deg, rgba(30,36,68,0.97), rgba(13,16,36,0.97));
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: clamp(20px, 4vw, 28px);
+        padding: clamp(20px, 4.5vw, 34px) clamp(18px, 4.5vw, 32px);
         text-align: center;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        box-shadow: var(--panel-highlight), var(--shadow-lg);
+        animation: gateIn .45s var(--ease) both;
       }
-      .gate-card .hand-art { width: 84px; height: 84px; margin: 0 auto 6px; }
+      @keyframes gateIn { from{ opacity:0; transform: translateY(14px) scale(.985);} to{ opacity:1; transform: translateY(0) scale(1);} }
+      .gate-card .hand-art { width: clamp(58px, 15vw, 86px); height: auto; aspect-ratio: 1; margin: 0 auto 4px; animation: floaty 3.2s ease-in-out infinite; }
+      @keyframes floaty { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-5px);} }
       .gate-card h2 {
         font-family: "Baloo 2", sans-serif;
-        font-size: 30px;
-        margin: 6px 0 8px;
+        font-size: clamp(24px, 6.5vw, 32px);
+        line-height: 1.08; margin: 6px 0 8px; letter-spacing: .01em;
       }
-      .gate-card p { color: var(--ink-dim); font-weight: 600; font-size: 15px; line-height: 1.55; margin: 0 0 14px; }
+      .gate-card p { color: var(--ink-dim); font-weight: 600; font-size: clamp(13.5px, 3.6vw, 15px); line-height: 1.6; margin: 0 auto 16px; max-width: 46ch; }
       .gate-card .mini-guide {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        text-align: left;
-        margin: 0 auto 20px;
-        max-width: 420px;
+        display: grid; grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: clamp(6px, 1.6vw, 9px);
+        text-align: left; margin: 0 auto clamp(16px, 3vw, 22px); max-width: 440px;
       }
       .gate-card .mini-guide div {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 12px;
-        padding: 9px 11px;
-        font-size: 13px;
-        font-weight: 700;
+        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        font-size: clamp(12.5px, 3vw, 13px); font-weight: 700;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
       }
-      .gate-card .mini-guide b { color: var(--accent-2); display: block; font-size: 13.5px; }
+      .gate-card .mini-guide b { color: var(--accent-2); display: block; font-size: clamp(13px, 3.2vw, 13.5px); margin-bottom: 1px; }
       .gate-card .mini-guide span { color: var(--ink-dim); font-weight: 600; }
       #startBtn {
         font-family: "Baloo 2", sans-serif;
-        font-size: 19px;
-        background: var(--accent);
-        color: #191104;
-        border: none;
-        border-radius: 999px;
-        padding: 14px 34px;
+        font-size: clamp(17px, 4.5vw, 19px); font-weight: 800;
+        background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+        color: var(--accent-ink); border: none; border-radius: 999px;
+        padding: 14px 36px; min-height: 52px; min-width: min(240px, 100%);
         cursor: pointer;
-        box-shadow: 0 10px 30px rgba(255, 210, 63, 0.35);
-        transition: transform 0.15s ease, background 0.15s ease;
+        box-shadow: 0 12px 32px rgba(255,210,63,0.38), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 0 rgba(0,0,0,0.08);
+        transition: transform .16s var(--ease), box-shadow .16s ease, filter .16s ease;
+        touch-action: manipulation;
       }
-      #startBtn:hover { background: #ffdc5c; transform: translateY(-1px); }
-      #startBtn:disabled { opacity: 0.6; cursor: wait; transform: none; }
-      #gateMsg { min-height: 22px; margin-top: 14px; font-size: 14px; font-weight: 700; color: var(--ink-dim); }
+      #startBtn:hover { filter: brightness(1.05); transform: translateY(-2px); box-shadow: 0 16px 36px rgba(255,210,63,0.42), inset 0 1px 0 rgba(255,255,255,0.55); }
+      #startBtn:active { transform: scale(.97); }
+      #startBtn:disabled { opacity: .6; cursor: wait; transform: none; }
+      #gateMsg { min-height: 22px; margin-top: 14px; font-size: clamp(12.5px, 3.2vw, 14px); font-weight: 700; line-height: 1.45; color: var(--ink-faint); }
       #gateMsg.error { color: #ff8fa5; }
 
-      /* ---------- Toast ---------- */
+      /* ---------- Toast & flash ---------- */
       #toast {
-        position: absolute;
-        left: 50%;
-        bottom: 24px;
-        transform: translateX(-50%) translateY(8px);
+        position: absolute; left: 50%;
+        bottom: calc(clamp(14px, 3vh, 26px) + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%) translateY(10px);
         z-index: 40;
-        background: rgba(10, 13, 28, 0.92);
-        border: 1px solid var(--panel-border);
-        color: var(--ink);
-        font-weight: 800;
-        font-size: 14.5px;
-        padding: 10px 18px;
-        border-radius: 999px;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.25s ease, transform 0.25s ease;
+        color: var(--ink); font-weight: 800;
+        font-size: clamp(13px, 2.4vw, 14.5px); line-height: 1.35;
+        padding: 11px 18px; border-radius: 999px;
+        opacity: 0; pointer-events: none;
+        transition: opacity .25s ease, transform .25s var(--ease);
         white-space: nowrap;
+        max-width: min(92vw, 520px);
+        text-align: center;
       }
       #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      #flash { position: absolute; inset: 0; z-index: 20; pointer-events: none; background: #fff; opacity: 0; }
+      #flash.go { animation: flashAnim .35s ease-out; }
+      @keyframes flashAnim { 0% { opacity: .55; } 100% { opacity: 0; } }
 
-      #flash {
-        position: absolute; inset: 0; z-index: 20; pointer-events: none;
-        background: #fff; opacity: 0;
+      /* ---------- Tablet ---------- */
+      @media (max-width: 1024px) {
+        #guide { width: min(236px, calc(100vw - 104px)); }
+        :root { --dock-w: 68px; }
       }
-      #flash.go { animation: flashAnim 0.35s ease-out; }
-      @keyframes flashAnim { 0% { opacity: 0.55; } 100% { opacity: 0; } }
-
+      /* ---------- Small tablet / large phone ---------- */
+      @media (max-width: 860px) {
+        .brand p { max-width: 26ch; }
+        :root { --guide-top: 104px; }
+      }
+      /* ---------- Phones: dock becomes a bottom bar ---------- */
       @media (max-width: 760px) {
-        #guide { display: none; }
-        #guide.open { display: block; top: 118px; }
-        #guideToggle {
-          display: inline-flex;
-          top: auto;
-          position: static;
-        }
+        header { flex-wrap: nowrap; }
         .brand p { display: none; }
-        /* Narrow screens: side dock collapses back to a bottom bar */
+        .brand h1 { font-size: clamp(22px, 7vw, 30px); }
+        .status-stack { max-width: 56vw; }
+        .pill { padding: 7px 11px; min-height: 32px; }
+        .color-chip { min-height: 32px; }
+        #guide { display: none; }
+        /* On phones the header's own "Gestures" pill is the guide
+           toggle (it lives inside the pill stack, so it can never be
+           covered) — the floating "?" button is desktop-only. */
+        #guideBtn { display: none; }
+        #guide.open {
+          display: block;
+          top: auto; bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+          left: 12px; right: 12px; width: auto;
+          max-height: min(46dvh, 380px);
+          border-radius: 18px;
+        }
+        #guideToggle { display: inline-flex; position: static; min-height: 34px; padding: 7px 13px; font-size: 12.5px; }
         #toolbar {
-          left: 50%;
-          top: auto;
+          left: 50%; top: auto;
           transform: translateX(-50%);
           bottom: max(10px, env(safe-area-inset-bottom));
-          flex-direction: row;
-          flex-wrap: wrap;
-          justify-content: center;
-          width: auto;
-          max-width: calc(100vw - 16px);
-          max-height: none;
-          overflow: visible;
-          border-radius: 22px;
-          padding: 9px 10px;
-          gap: 8px;
+          flex-direction: row; flex-wrap: wrap; justify-content: center; align-content: center;
+          width: auto; max-width: calc(100vw - 16px);
+          max-height: min(38dvh, 220px);
+          overflow-y: auto; overflow-x: hidden;
+          border-radius: 24px;
+          padding: 9px 10px; gap: 7px;
+          animation: dockInMobile .35s var(--ease) both;
         }
-        #toolbar .palette { display: flex; flex-wrap: wrap; justify-content: center; }
-        #toolbar .divider { width: 1px; height: auto; align-self: stretch; margin: 2px 2px; }
-        #toolbar .tool { width: auto; height: auto; padding: 8px 11px; border-radius: 999px; }
+        @keyframes dockInMobile { from{ opacity:0; transform: translateX(-50%) translateY(10px);} to{ opacity:1; transform: translateX(-50%) translateY(0);} }
+        #toolbar .palette { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 196px; }
+        #toolbar .divider { width: 1px; height: 28px; align-self: center; margin: 0 1px; background: rgba(255,255,255,0.18); }
+        #toolbar .tool { width: auto; height: auto; min-height: 40px; padding: 8px 11px; border-radius: 999px; }
         #toolbar #sizeBtn { min-width: 0; padding: 8px 11px; }
         #toolbar .size-dots { display: inline-flex; }
+        #toolbar .tool .lbl { display: none; }
+        #toolbar .tool.save .lbl, #toolbar .tool.clear .lbl, #toolbar .tool.undo .lbl { display: inline; }
         .swatch { width: 28px; height: 28px; }
         .tool { font-size: 12.5px; }
-        .tool .lbl { display: none; }
-        .tool.save .lbl, .tool.clear .lbl, .tool.undo .lbl { display: inline; }
-        #toolbar .tool.save .lbl, #toolbar .tool.clear .lbl, #toolbar .tool.undo .lbl { display: inline; }
-        #toast { bottom: 110px; }
+        #toast { bottom: calc(126px + env(safe-area-inset-bottom, 0px)); white-space: normal; border-radius: 18px; }
+        #objectBar { top: auto; bottom: calc(126px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 20px); border-radius: 22px; }
+        #objectBar .obj-label { width: 100%; text-align: center; padding: 0; }
+      }
+      /* ---------- Very small phones ---------- */
+      @media (max-width: 420px) {
+        .gate-card .mini-guide { grid-template-columns: 1fr; }
+        .gate-card .mini-guide div { padding: 8px 11px; }
+        #startBtn { width: 100%; }
+        .status-stack { gap: 5px; }
+        .color-chip #chipName { max-width: 84px; }
+        #toolbar { gap: 6px; padding: 8px; border-radius: 20px; }
+        #toolbar .tool { min-height: 38px; padding: 7px 9px; }
+        .swatch { width: 26px; height: 26px; }
+      }
+      @media (max-width: 340px) {
+        .brand h1 { font-size: 20px; }
+        .pill { font-size: 11.5px; padding: 6px 9px; }
+        .color-chip { display: none; }
+      }
+      /* ---------- Short screens (small laptops, landscape phones) ---------- */
+      @media (max-height: 640px) {
+        header { padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-bottom: 6px; }
+        .brand p { display: none; }
+        .brand h1 { font-size: clamp(20px, 4vw, 28px); }
+        :root { --guide-top: 76px; }
+        #guide { max-height: calc(100dvh - 146px); padding: 10px 12px; }
+        #guide li { padding: 4px 0; }
+        #toolbar { max-height: calc(100dvh - 110px); padding-top: 9px; padding-bottom: 9px; gap: 5px; }
+        #objectBar { top: 68px; }
+        .gate-card { padding-top: 16px; padding-bottom: 16px; }
+        .gate-card .hand-art { width: 46px; }
+        .gate-card h2 { font-size: 22px; margin: 2px 0 4px; }
+        .gate-card p { margin-bottom: 10px; line-height: 1.45; }
+        .gate-card .mini-guide { margin-bottom: 12px; }
+        #startBtn { min-height: 46px; padding: 10px 28px; }
+        #gateMsg { margin-top: 8px; min-height: 18px; }
+      }
+      @media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
+        #toolbar {
+          left: 50%; top: auto; transform: translateX(-50%);
+          bottom: max(8px, env(safe-area-inset-bottom));
+          flex-direction: row; flex-wrap: nowrap;
+          width: auto; max-width: calc(100vw - 16px);
+          max-height: 64px; overflow-x: auto; overflow-y: hidden;
+          border-radius: 999px; padding: 8px 10px;
+          scrollbar-width: none;
+        }
+        #toolbar .palette { display: flex; flex-wrap: nowrap; }
+        #toolbar .divider { width: 1px; height: 26px; align-self: center; }
+        #toolbar .tool { width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+        #toolbar .tool .lbl { display: none; }
+        #toolbar #sizeBtn { width: auto; border-radius: 999px; padding: 0 10px; }
+        #toast { bottom: 78px; }
+        #objectBar { bottom: auto; top: 62px; }
       }
       @media (prefers-reduced-motion: reduce) {
-        * { transition: none !important; animation: none !important; }
+        *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
       }
     </style>
   </head>
@@ -451,22 +687,39 @@
         <div class="status-stack">
           <div class="pill" id="modePill"><span class="dot"></span><span id="modeText">Camera off</span></div>
           <div class="color-chip"><span class="sw" id="chipSwatch"></span><span id="chipName">Ruby Red</span></div>
-          <button class="tool" id="guideToggle" type="button">Gestures</button>
+          <button class="tool" id="muteBtn" type="button" data-dwell="mute" aria-label="Mute or unmute sounds" title="Sound on/off">🔊</button>
+          <button class="tool" id="guideToggle" type="button" data-dwell="guide">Gestures</button>
         </div>
       </header>
+
+      <button id="guideBtn" type="button" data-dwell="guide" aria-label="Show or hide the gesture guide" aria-expanded="true" title="Gesture guide (H)">?</button>
 
       <aside id="guide" aria-label="Gesture guide">
         <h2>Hand Gestures</h2>
         <ul>
           <li><b>One finger</b><span>Draw in the air</span></li>
           <li><b>Two fingers</b><span>Move, pen lifted</span></li>
-          <li><b>Fist (hold)</b><span>Clear the canvas</span></li>
-          <li><b>Open palm</b><span>Flower blooms in your hand</span></li>
-          <li><b>Two-hand heart</b><span>Magic heart appears — pinch to recolor</span></li>
+          <li><b>Open palm (hold)</b><span>Cycle to the next colour</span></li>
+          <li><b>Two-hand heart (Drawing Mode)</b><span>Magic heart appears — pinch to recolor</span></li>
+          <li><b>Two hands</b><span>Object Mode — distance = size</span></li>
+          <li><b>Cupped hands</b><span>Charge Kamehameha (rising hum), push forward to fire the blast</span></li>
+          <li><b>Flick</b><span>Throw object</span></li>
+          <li><b>Open hand (Object Mode)</b><span>Pop the object into sparks</span></li>
           <li><b>Pinch (stamp mode)</b><span>Stamp the emoji</span></li>
           <li><b>Point at toolbar</b><span>Hold to pick tools &amp; fun modes</span></li>
+          <li><b>Fist (hold ~1 sec)</b><span>Clear canvas</span></li>
+          <li><b>Fist (keep holding, 3 sec)</b><span>Switch mode</span></li>
         </ul>
       </aside>
+
+      <div id="objectBar" aria-label="Object Mode objects">
+        <span class="obj-label">Object</span>
+        <button class="obj-chip active" type="button" data-dwell="obj-ball" data-obj="ball">Energy Ball</button>
+        <button class="obj-chip" type="button" data-dwell="obj-ring" data-obj="ring">Glow Ring</button>
+        <button class="obj-chip" type="button" data-dwell="obj-star" data-obj="star">Star</button>
+      </div>
+
+      <div id="modeBanner" aria-hidden="true"></div>
 
       <div id="toast" role="status"></div>
 
@@ -533,8 +786,11 @@
           <div class="mini-guide">
             <div><b>One finger</b><span>Draw</span></div>
             <div><b>Two fingers</b><span>Move without drawing</span></div>
-            <div><b>Fist, held</b><span>Clear everything</span></div>
-            <div><b>Open palm, held</b><span>A flower blooms in your hand</span></div>
+            <div><b>Open palm, held</b><span>Next colour</span></div>
+            <div><b>Two hands</b><span>Object Mode — distance sets the size</span></div>
+            <div><b>Cupped hands, then push</b><span>Charge &amp; fire a Kamehameha</span></div>
+            <div><b>Fist, held ~1 sec</b><span>Clear canvas</span></div>
+            <div><b>Fist, keep holding 3 sec</b><span>Switch mode</span></div>
           </div>
           <button id="startBtn" type="button">Start Camera</button>
           <div id="gateMsg">Your video stays on this device — nothing is uploaded.</div>
@@ -564,8 +820,7 @@
           { name: "L", px: 24 }
         ];
         var DWELL_MS = 550;
-        var FLOWER_HOLD_MS = 500;
-        var FIST_HOLD_MS = 650;
+        var PALM_HOLD_MS = 600;
 
         var stage = document.getElementById("stage");
         var video = document.getElementById("cam");
@@ -606,11 +861,382 @@
         var miniHearts = [];
         var undoStack = [];
         var heart = { visible: false, cx: 0, cy: 0, size: 60, alpha: 0 };
-        var flower = { target: 0, bloom: 0, cx: 0, cy: 0 };
+        var heartLatch = false; // burst + toast only once per heart appearance
         var cursorState = null, ringState = null;
         var pinchDown = [false, false];
         var stampPinchWas = false;
         var stampHoldSince = 0, stampHoldPt = null, stampHoldFired = false;
+
+        /* ---------- Two-hand Object Mode & Kamehameha state ---------- */
+        var objectBar = document.getElementById("objectBar");
+        var objMode = false;              // two hands on screen
+        var objType = "ball";             // ball | ring | star
+        var objVisible = false;
+        var objMid = null;                // smoothed midpoint (canvas px)
+        var objSize = 60;                 // smoothed radius (canvas px)
+        var objAngle = 0;
+        var objPrevMid = null, objPrevAt = 0;
+        var objVel = { x: 0, y: 0 };      // CSS px per ms, smoothed
+        var objTrail = [];                // recent {t,x,y} midpoint samples (canvas px) — flick-to-throw window
+        var thrownObj = null;             // {x,y,vx,vy,size,type} while flying
+        var objSuppressUntil = 0;         // after throw / pop / beam
+        var wasTwoHands = false;
+        var charge = { active: false, level: 0, cx: 0, cy: 0, lastAt: 0 };
+        var beam = { active: false, start: 0, cx: 0, cy: 0, level: 0 };
+        var beamCooldownUntil = 0;
+        var scaleHistory = [];            // {t, s} avg hand scale, for thrust detection
+        var shakeUntil = 0;
+        // Pre-rendered glow sprite (radial gradient baked once — no
+        // per-frame gradient allocation in the render loop).
+        var glowSprite = (function () {
+          var c = document.createElement("canvas");
+          c.width = 256; c.height = 256;
+          var g = c.getContext("2d");
+          var grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+          grad.addColorStop(0, "rgba(255,255,255,0.95)");
+          grad.addColorStop(0.22, "rgba(160,225,255,0.75)");
+          grad.addColorStop(0.5, "rgba(60,170,255,0.32)");
+          grad.addColorStop(1, "rgba(40,120,255,0)");
+          g.fillStyle = grad;
+          g.fillRect(0, 0, 256, 256);
+          return c;
+        })();
+        /* ---------- Kamehameha audio (Web Audio — fully synthesized,
+           no audio files) ----------
+           One AudioContext, created/resumed on the Start button click.
+           A master gain (~0.5) keeps every sound tasteful. Only the
+           Kamehameha makes noise: a rising charge hum, the beam blast,
+           and a short fizzle when a charge dies. */
+        var audioCtx = null, masterGain = null, noiseBuffer = null;
+        var chargeNodes = null; // live nodes of the charging loop
+        function initAudio() {
+          if (audioCtx) {
+            if (audioCtx.state === "suspended") audioCtx.resume();
+            return;
+          }
+          try {
+            var AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            audioCtx = new AC();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.5;
+            masterGain.connect(audioCtx.destination);
+            // Shared 2s white-noise buffer for charge + blast whoosh.
+            var len = Math.floor(audioCtx.sampleRate * 2);
+            noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+            var data = noiseBuffer.getChannelData(0);
+            for (var ni = 0; ni < len; ni++) data[ni] = Math.random() * 2 - 1;
+          } catch (e) { audioCtx = null; }
+        }
+        function startChargeSound() {
+          if (!audioCtx || chargeNodes) return;
+          var gain = audioCtx.createGain();
+          gain.gain.value = 0;
+          gain.connect(masterGain);
+          // Rising whine: sawtooth through a lowpass that opens up.
+          var osc = audioCtx.createOscillator();
+          osc.type = "sawtooth";
+          osc.frequency.value = 55;
+          var oscFilter = audioCtx.createBiquadFilter();
+          oscFilter.type = "lowpass";
+          oscFilter.frequency.value = 320;
+          oscFilter.Q.value = 2;
+          var oscGain = audioCtx.createGain();
+          oscGain.gain.value = 0.42;
+          osc.connect(oscFilter); oscFilter.connect(oscGain); oscGain.connect(gain);
+          // Deep sub hum underneath.
+          var sub = audioCtx.createOscillator();
+          sub.type = "sine";
+          sub.frequency.value = 55;
+          var subGain = audioCtx.createGain();
+          subGain.gain.value = 0.55;
+          sub.connect(subGain); subGain.connect(gain);
+          // Energy hiss: looped noise through a sweeping bandpass.
+          var noise = audioCtx.createBufferSource();
+          noise.buffer = noiseBuffer;
+          noise.loop = true;
+          var bp = audioCtx.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.value = 500;
+          bp.Q.value = 1.1;
+          var nGain = audioCtx.createGain();
+          nGain.gain.value = 0.22;
+          noise.connect(bp); bp.connect(nGain); nGain.connect(gain);
+          // Full-power shimmer tone (silent until charge hits 100%).
+          var shimmer = audioCtx.createOscillator();
+          shimmer.type = "triangle";
+          shimmer.frequency.value = 1318;
+          var sGain = audioCtx.createGain();
+          sGain.gain.value = 0;
+          shimmer.connect(sGain); sGain.connect(gain);
+          osc.start(); sub.start(); noise.start(); shimmer.start();
+          chargeNodes = {
+            gain: gain, osc: osc, sub: sub, noise: noise,
+            bp: bp, oscFilter: oscFilter, shimmer: shimmer, sGain: sGain
+          };
+        }
+        function updateChargeSound(level, now) {
+          if (!audioCtx || !chargeNodes) return;
+          var t = audioCtx.currentTime, tc = 0.06;
+          // Pitch + intensity climb with the charge level.
+          chargeNodes.gain.gain.setTargetAtTime(0.14 + level * 0.34, t, tc);
+          var f = 55 + level * 175; // 55 Hz -> 230 Hz
+          chargeNodes.osc.frequency.setTargetAtTime(f, t, tc);
+          chargeNodes.sub.frequency.setTargetAtTime(f, t, tc);
+          chargeNodes.oscFilter.frequency.setTargetAtTime(320 + level * 2100, t, tc);
+          chargeNodes.bp.frequency.setTargetAtTime(500 + level * 2600, t, tc);
+          // At FULL POWER: a pulsing shimmer rides on top.
+          if (level >= 0.99) {
+            chargeNodes.sGain.gain.setTargetAtTime(0.055 + 0.04 * Math.sin(now / 85), t, 0.03);
+            chargeNodes.shimmer.frequency.setTargetAtTime(1318 + 90 * Math.sin(now / 130), t, 0.03);
+          } else {
+            chargeNodes.sGain.gain.setTargetAtTime(0, t, 0.05);
+          }
+        }
+        function stopChargeSound() {
+          if (!audioCtx || !chargeNodes) return;
+          var nodes = chargeNodes;
+          chargeNodes = null;
+          var t = audioCtx.currentTime;
+          try {
+            nodes.gain.gain.cancelScheduledValues(t);
+            nodes.gain.gain.setTargetAtTime(0, t, 0.03);
+            var stopAt = t + 0.18;
+            nodes.osc.stop(stopAt); nodes.sub.stop(stopAt);
+            nodes.noise.stop(stopAt); nodes.shimmer.stop(stopAt);
+          } catch (e) { /* nodes already stopped */ }
+        }
+        function playFireSound() {
+          if (!audioCtx) return;
+          stopChargeSound();
+          var t = audioCtx.currentTime;
+          // Big whoosh: noise burst, bandpass sweeping down (~0.9s,
+          // matching the beam's 950 ms on screen).
+          var noise = audioCtx.createBufferSource();
+          noise.buffer = noiseBuffer;
+          noise.loop = true;
+          var bp = audioCtx.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.Q.value = 0.9;
+          bp.frequency.setValueAtTime(3800, t);
+          bp.frequency.exponentialRampToValueAtTime(170, t + 0.9);
+          var nGain = audioCtx.createGain();
+          nGain.gain.setValueAtTime(0.0001, t);
+          nGain.gain.exponentialRampToValueAtTime(0.85, t + 0.05);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
+          noise.connect(bp); bp.connect(nGain); nGain.connect(masterGain);
+          noise.start(t); noise.stop(t + 1.0);
+          // Deep sawtooth sweep dropping in pitch.
+          var saw = audioCtx.createOscillator();
+          saw.type = "sawtooth";
+          saw.frequency.setValueAtTime(300, t);
+          saw.frequency.exponentialRampToValueAtTime(38, t + 0.9);
+          var lp = audioCtx.createBiquadFilter();
+          lp.type = "lowpass";
+          lp.frequency.setValueAtTime(2400, t);
+          lp.frequency.exponentialRampToValueAtTime(200, t + 0.9);
+          var sGain = audioCtx.createGain();
+          sGain.gain.setValueAtTime(0.0001, t);
+          sGain.gain.exponentialRampToValueAtTime(0.5, t + 0.04);
+          sGain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
+          saw.connect(lp); lp.connect(sGain); sGain.connect(masterGain);
+          saw.start(t); saw.stop(t + 1.0);
+          // Sub thump for body.
+          var sub = audioCtx.createOscillator();
+          sub.type = "sine";
+          sub.frequency.setValueAtTime(120, t);
+          sub.frequency.exponentialRampToValueAtTime(30, t + 0.7);
+          var subGain = audioCtx.createGain();
+          subGain.gain.setValueAtTime(0.0001, t);
+          subGain.gain.exponentialRampToValueAtTime(0.6, t + 0.03);
+          subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+          sub.connect(subGain); subGain.connect(masterGain);
+          sub.start(t); sub.stop(t + 0.8);
+        }
+        function playFizzleSound() {
+          if (!audioCtx) return;
+          stopChargeSound();
+          var t = audioCtx.currentTime;
+          // Short descending zap (~0.25s), deliberately quiet.
+          var osc = audioCtx.createOscillator();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(880, t);
+          osc.frequency.exponentialRampToValueAtTime(130, t + 0.24);
+          var lp = audioCtx.createBiquadFilter();
+          lp.type = "lowpass";
+          lp.frequency.value = 2600;
+          var g = audioCtx.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
+          osc.connect(lp); lp.connect(g); g.connect(masterGain);
+          osc.start(t); osc.stop(t + 0.3);
+          // A few dying sparks of noise on top.
+          var noise = audioCtx.createBufferSource();
+          noise.buffer = noiseBuffer;
+          var hp = audioCtx.createBiquadFilter();
+          hp.type = "highpass";
+          hp.frequency.value = 3200;
+          var nGain = audioCtx.createGain();
+          nGain.gain.setValueAtTime(0.1, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          noise.connect(hp); hp.connect(nGain); nGain.connect(masterGain);
+          noise.start(t); noise.stop(t + 0.22);
+        }
+
+        /* ---------- App-wide sound pack (all synthesized, subtle) ----------
+           Two tiny primitives — a tone sweep and a filtered noise hit —
+           build every effect. Volumes stay low; the master gain caps
+           everything, and the speaker button mutes the whole pack. */
+        function tone(o) {
+          if (!audioCtx) return;
+          var t = audioCtx.currentTime + (o.delay || 0);
+          var osc = audioCtx.createOscillator();
+          osc.type = o.type || "sine";
+          osc.frequency.setValueAtTime(o.f0, t);
+          if (o.f1) osc.frequency.exponentialRampToValueAtTime(Math.max(o.f1, 1), t + o.dur);
+          var g = audioCtx.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(o.g, t + (o.attack || 0.012));
+          g.gain.exponentialRampToValueAtTime(0.001, t + o.dur);
+          osc.connect(g); g.connect(masterGain);
+          osc.start(t); osc.stop(t + o.dur + 0.05);
+        }
+        function noiseHit(o) {
+          if (!audioCtx || !noiseBuffer) return;
+          var t = audioCtx.currentTime + (o.delay || 0);
+          var src = audioCtx.createBufferSource();
+          src.buffer = noiseBuffer;
+          src.loop = true;
+          var flt = audioCtx.createBiquadFilter();
+          flt.type = o.fType || "bandpass";
+          flt.Q.value = o.Q || 0.9;
+          flt.frequency.setValueAtTime(o.f0 || 1200, t);
+          if (o.f1) flt.frequency.exponentialRampToValueAtTime(Math.max(o.f1, 20), t + o.dur);
+          var g = audioCtx.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(o.g, t + (o.attack || 0.01));
+          g.gain.exponentialRampToValueAtTime(0.001, t + o.dur);
+          src.connect(flt); flt.connect(g); g.connect(masterGain);
+          src.start(t); src.stop(t + o.dur + 0.05);
+        }
+        function playClick() { // tiny UI tick for buttons & chips
+          noiseHit({ dur: 0.04, g: 0.05, fType: "highpass", f0: 2600 });
+        }
+        function playBlip() { // colour cycle / heart recolour
+          tone({ type: "sine", f0: 620, f1: 930, dur: 0.1, g: 0.11 });
+        }
+        function playSwitchSound() { // mode switch: soft whoosh + confirm blip
+          noiseHit({ dur: 0.3, g: 0.1, fType: "bandpass", f0: 480, f1: 2500, Q: 1.2 });
+          tone({ type: "sine", f0: 660, f1: 990, dur: 0.12, g: 0.08, delay: 0.03 });
+        }
+        function playTick() { // soft tick, once per second of the fist hold
+          tone({ type: "sine", f0: 1250, dur: 0.05, g: 0.05 });
+        }
+        function playHeartChime() { // gentle sparkle arpeggio
+          tone({ type: "sine", f0: 1568, dur: 0.32, g: 0.06 });
+          tone({ type: "sine", f0: 2093, dur: 0.36, g: 0.055, delay: 0.07 });
+          tone({ type: "sine", f0: 2637, dur: 0.42, g: 0.05, delay: 0.14 });
+          tone({ type: "triangle", f0: 1046, dur: 0.3, g: 0.035 });
+        }
+        function playSpawnPop() { // object appears
+          tone({ type: "sine", f0: 300, f1: 660, dur: 0.12, g: 0.13 });
+        }
+        function playStampPop() { // stamp placed
+          tone({ type: "sine", f0: 480, f1: 140, dur: 0.13, g: 0.18 });
+          noiseHit({ dur: 0.05, g: 0.05, fType: "lowpass", f0: 900 });
+        }
+        function playPopBurst() { // open-hand pop
+          noiseHit({ dur: 0.3, g: 0.26, fType: "lowpass", f0: 2600, f1: 280 });
+          tone({ type: "sine", f0: 300, f1: 58, dur: 0.25, g: 0.22 });
+        }
+        function playThrowWhoosh() { // flick throw
+          noiseHit({ dur: 0.38, g: 0.2, fType: "bandpass", f0: 500, f1: 2700, Q: 1 });
+          noiseHit({ dur: 0.24, g: 0.1, fType: "bandpass", f0: 2600, f1: 700, Q: 1, delay: 0.16 });
+        }
+        function playClearSweep() { // clear-all
+          noiseHit({ dur: 0.35, g: 0.14, fType: "bandpass", f0: 3000, f1: 280, Q: 1 });
+        }
+        function playShutter() { // Save PNG camera shutter: click-click
+          noiseHit({ dur: 0.03, g: 0.22, fType: "highpass", f0: 2000 });
+          noiseHit({ dur: 0.03, g: 0.16, fType: "highpass", f0: 2000, delay: 0.09 });
+        }
+        /* ---------- Mute (speaker button in the top bar) ---------- */
+        var muted = false;
+        var muteBtnEl = document.getElementById("muteBtn");
+        function toggleMute() {
+          if (!audioCtx) initAudio();
+          if (!audioCtx) return;
+          if (muted) {
+            muted = false;
+            masterGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.02);
+            muteBtnEl.textContent = "🔊";
+            playClick();
+            toast("Sound on");
+          } else {
+            playClick();
+            muted = true;
+            masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.02);
+            muteBtnEl.textContent = "🔇";
+            toast("Sound off");
+          }
+        }
+
+        /* ---------- Latched 2-mode system ---------- */
+        // Modes are LATCHED: Drawing <-> Object.
+        // Holding a fist for 3 seconds switches to the other mode. Hand
+        // count NEVER switches modes — only the active mode's features
+        // run.
+        var MODES = [
+          { id: "draw",   label: "✏️ Drawing Mode", banner: "✏️ Drawing Mode" },
+          { id: "object", label: "🖐️ Object Mode",  banner: "🖐️ Object Mode" }
+        ];
+        var modeIdx = 0; // app starts in Drawing mode
+        var activeMode = "draw";
+        var modeBanner = document.getElementById("modeBanner");
+        var bannerTimer = 0;
+        // Two-stage fist hold: in Drawing mode, holding a fist for
+        // ~1 s clears the canvas (the original fist-clear); KEEPING
+        // the same fist held continues into the mode switch at 3 s
+        // total. In Object mode there is no clear stage — the fist
+        // only drives the 3 s switch. Opening the fist or losing the
+        // hand resets everything silently. After a switch the fist
+        // must open before another hold can start (latched).
+        var fistHold = { since: 0, lastWholeSec: 0, pt: null, r: 0, latched: false, cleared: false, flashUntil: 0 };
+        var FIST_CLEAR_MS = 1000;
+        var FIST_SWITCH_MS = 3000;
+        function showModeBanner(text) {
+          modeBanner.textContent = text;
+          modeBanner.classList.remove("show");
+          void modeBanner.offsetWidth; // restart the animation
+          modeBanner.classList.add("show");
+          clearTimeout(bannerTimer);
+          bannerTimer = setTimeout(function () { modeBanner.classList.remove("show"); }, 1650);
+        }
+        function updateModePill() {
+          // The pill persistently shows the LATCHED mode.
+          modePill.className = "pill mode-lat" + activeMode;
+          modeText.textContent = MODES[modeIdx].label;
+        }
+        function setObjType(t, announce) {
+          objType = t;
+          var chips = objectBar.querySelectorAll(".obj-chip");
+          for (var i = 0; i < chips.length; i++) {
+            chips[i].classList.toggle("active", chips[i].getAttribute("data-obj") === t);
+          }
+          if (announce) {
+            toast(t === "ball" ? "Energy Ball — hands apart = bigger" :
+                  t === "ring" ? "Glow Ring — hands apart = bigger" : "Star — hands apart = bigger");
+          }
+        }
+        Array.prototype.forEach.call(objectBar.querySelectorAll(".obj-chip"), function (chip) {
+          chip.addEventListener("click", function () { setObjType(chip.getAttribute("data-obj"), true); });
+        });
+        function setObjModeUI(on) {
+          // Only the object chip row toggles — the ONE persistent mode
+          // indicator is the latched mode pill in the header.
+          objectBar.classList.toggle("show", on);
+        }
 
         /* ---------- Palette ---------- */
         var palette = document.getElementById("palette");
@@ -641,7 +1267,7 @@
           }
           chipSwatch.style.background = COLORS[i].hex;
           chipName.textContent = COLORS[i].name;
-          if (announce) toast("Color: " + COLORS[i].name);
+          if (announce) { playBlip(); toast("Color: " + COLORS[i].name); }
         }
 
         /* ---------- Toolbar buttons ---------- */
@@ -738,6 +1364,8 @@
           if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) {
             e.preventDefault();
             undoLast();
+          } else if ((e.key === "h" || e.key === "H") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            toggleGuide();
           }
         });
 
@@ -750,13 +1378,14 @@
           dctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
           dctx.restore();
           lastPoint = null; midPoint = null;
-          if (announce !== false) toast("Canvas cleared");
+          if (announce !== false) { playClearSweep(); toast("Canvas cleared"); }
         }
         clearBtn.addEventListener("click", function () { clearCanvas(true); });
 
         var saveBtn = document.getElementById("saveBtn");
         saveBtn.setAttribute("data-dwell", "save");
         function saveSnapshot() {
+          playShutter();
           var w = video.videoWidth || stage.clientWidth;
           var h = video.videoHeight || stage.clientHeight;
           var out = document.createElement("canvas");
@@ -791,9 +1420,34 @@
         }
         saveBtn.addEventListener("click", saveSnapshot);
 
-        document.getElementById("guideToggle").addEventListener("click", function () {
-          document.getElementById("guide").classList.toggle("open");
-        });
+        /* ---------- Gesture guide show/hide ----------
+           One state, three triggers: the round "?" button (click or
+           two-finger dwell), the mobile "Gestures" pill, and the H key.
+           Desktop: the panel slides/fades via stage.guide-off.
+           Phones: the panel is a bottom sheet toggled with .open,
+           exactly as before. Default: visible, as it has always been. */
+        var guidePanel = document.getElementById("guide");
+        var guideBtn = document.getElementById("guideBtn");
+        function guideIsMobile() {
+          return window.matchMedia("(max-width: 760px)").matches;
+        }
+        function guideIsVisible() {
+          return guideIsMobile()
+            ? guidePanel.classList.contains("open")
+            : !stage.classList.contains("guide-off");
+        }
+        function setGuideVisible(v) {
+          if (guideIsMobile()) {
+            guidePanel.classList.toggle("open", v);
+          } else {
+            stage.classList.toggle("guide-off", !v);
+          }
+          guideBtn.setAttribute("aria-expanded", String(v));
+          guideBtn.classList.toggle("off", !v);
+        }
+        function toggleGuide() { playClick(); setGuideVisible(!guideIsVisible()); }
+        guideBtn.addEventListener("click", toggleGuide);
+        document.getElementById("guideToggle").addEventListener("click", toggleGuide);
 
         function toast(msg) {
           toastEl.textContent = msg;
@@ -846,12 +1500,13 @@
         }
 
         /* ---------- Mode pill ---------- */
+        // The pill always shows the latched mode (Drawing / Object).
+        // Gesture status labels no longer overwrite it — they
+        // are feedback for the cursor/toast only.
         var currentMode = "";
         function setMode(mode, label) {
-          if (mode === currentMode) return;
           currentMode = mode;
-          modePill.className = "pill mode-" + mode;
-          modeText.textContent = label;
+          updateModePill();
         }
 
         /* ---------- Undo ---------- */
@@ -1011,6 +1666,7 @@
           });
           dctx.restore();
           if (sparkleOn) { spawnSparkles(pt); spawnSparkles(pt); }
+          playStampPop();
           toast("Stamped " + STAMP_NAMES[stampIdx]);
         }
 
@@ -1037,34 +1693,6 @@
           octx.fill();
           octx.restore();
         }
-        function drawFlowerShape(now, scale) {
-          var R = 48 * scale * flower.bloom;
-          if (R <= 0.5) return;
-          var petalCol = COLORS[colorIdx].hex;
-          octx.save();
-          octx.translate(flower.cx, flower.cy);
-          octx.rotate(Math.sin(now / 900) * 0.09);
-          for (var i = 0; i < 6; i++) {
-            octx.save();
-            octx.rotate((Math.PI * 2 / 6) * i + (1 - flower.bloom) * 0.9);
-            octx.beginPath();
-            octx.ellipse(0, -R * 0.62, R * 0.35, R * 0.64, 0, 0, Math.PI * 2);
-            octx.globalAlpha = 0.92;
-            octx.fillStyle = petalCol;
-            octx.shadowColor = petalCol;
-            octx.shadowBlur = 15 * scale;
-            octx.fill();
-            octx.restore();
-          }
-          octx.globalAlpha = 1;
-          octx.beginPath();
-          octx.arc(0, 0, R * 0.34, 0, Math.PI * 2);
-          octx.fillStyle = "#ffd23f";
-          octx.shadowColor = "#ffd23f";
-          octx.shadowBlur = 18 * scale;
-          octx.fill();
-          octx.restore();
-        }
         function drawCursorShape(pt, mode, scale) {
           var r = (eraserOn && mode === "draw" ? SIZES[sizeIdx].px * 1.2 + 8 : 15) * scale;
           octx.beginPath();
@@ -1084,6 +1712,253 @@
           octx.strokeStyle = color;
           octx.stroke();
         }
+        /* Fist-hold mode-switch progress: a gold ring around the fist
+           (same dwell-ring language, larger) plus a countdown label
+           under it so the 3 s hold is always readable. */
+        function drawSwitchRing(pt, r, frac, label, scale, color) {
+          var ringColor = color || "#ffd23f";
+          octx.save();
+          octx.beginPath();
+          octx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+          octx.lineWidth = 5 * scale;
+          octx.strokeStyle = "rgba(255,255,255,0.30)";
+          octx.stroke();
+          octx.beginPath();
+          octx.arc(pt.x, pt.y, r, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+          octx.lineWidth = 6 * scale;
+          octx.lineCap = "round";
+          octx.strokeStyle = ringColor;
+          octx.shadowColor = ringColor;
+          octx.shadowBlur = 12 * scale;
+          octx.stroke();
+          octx.shadowBlur = 0;
+          octx.font = "800 " + Math.round(15 * scale) + "px Nunito, sans-serif";
+          octx.textAlign = "center";
+          octx.textBaseline = "top";
+          var ly = pt.y + r + 10 * scale;
+          octx.lineWidth = 4 * scale;
+          octx.strokeStyle = "rgba(0,0,0,0.55)";
+          octx.strokeText(label, pt.x, ly);
+          octx.fillStyle = "#ffffff";
+          octx.fillText(label, pt.x, ly);
+          octx.restore();
+        }
+        /* ---------- Object Mode rendering helpers ---------- */
+        function drawGlowAt(x, y, r, alpha) {
+          if (r <= 0 || alpha <= 0) return;
+          octx.save();
+          octx.globalAlpha = Math.min(1, alpha);
+          octx.globalCompositeOperation = "lighter";
+          octx.drawImage(glowSprite, x - r, y - r, r * 2, r * 2);
+          octx.restore();
+        }
+        function burstAt(x, y, color, n, scale) {
+          for (var i = 0; i < n; i++) {
+            var a = Math.random() * Math.PI * 2;
+            var sp = (0.8 + Math.random() * 2.6) * scale;
+            particles.push({
+              x: x, y: y,
+              vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+              life: 1, decay: 0.02 + Math.random() * 0.02,
+              size: (3 + Math.random() * 5) * scale, color: color
+            });
+          }
+          if (particles.length > 220) particles.splice(0, particles.length - 220);
+        }
+        function starPath(cx, cy, r, rot) {
+          octx.beginPath();
+          for (var i = 0; i < 10; i++) {
+            var rad = i % 2 === 0 ? r : r * 0.46;
+            var a = rot + i * Math.PI / 5 - Math.PI / 2;
+            var px = cx + Math.cos(a) * rad, py = cy + Math.sin(a) * rad;
+            if (i === 0) octx.moveTo(px, py); else octx.lineTo(px, py);
+          }
+          octx.closePath();
+        }
+        function drawObjectShape(type, x, y, size, angle, now, scale) {
+          if (type === "ball") {
+            var pulse = 1 + 0.05 * Math.sin(now / 240);
+            var r = size * pulse;
+            drawGlowAt(x, y, r * 2.1, 0.85);
+            octx.save();
+            octx.beginPath();
+            octx.arc(x, y, r, 0, Math.PI * 2);
+            octx.fillStyle = "rgba(190,235,255,0.95)";
+            octx.shadowColor = "#39b6ff";
+            octx.shadowBlur = 30 * scale;
+            octx.fill();
+            octx.beginPath();
+            octx.arc(x - r * 0.3, y - r * 0.32, r * 0.42, 0, Math.PI * 2);
+            octx.fillStyle = "rgba(255,255,255,0.95)";
+            octx.shadowBlur = 0;
+            octx.fill();
+            octx.restore();
+            // Orbiting sparks
+            for (var k = 0; k < 3; k++) {
+              var oa = angle * 2.4 + k * (Math.PI * 2 / 3);
+              drawStarShape(x + Math.cos(oa) * r * 1.35, y + Math.sin(oa) * r * 0.75, 4.5 * scale, "#aee6ff", 0.9);
+            }
+          } else if (type === "ring") {
+            drawGlowAt(x, y, size * 1.7, 0.4);
+            octx.save();
+            octx.translate(x, y);
+            octx.rotate(Math.sin(now / 1400) * 0.35 - 0.5);
+            octx.scale(1, 0.42);
+            octx.beginPath();
+            octx.arc(0, 0, size, angle % (Math.PI * 2), angle % (Math.PI * 2) + Math.PI * 1.55);
+            octx.lineWidth = size * 0.16 + 3 * scale;
+            octx.strokeStyle = "#39e0ff";
+            octx.shadowColor = "#39e0ff";
+            octx.shadowBlur = 26 * scale;
+            octx.lineCap = "round";
+            octx.stroke();
+            octx.beginPath();
+            octx.arc(0, 0, size * 0.78, -angle % (Math.PI * 2), -angle % (Math.PI * 2) + Math.PI * 1.2);
+            octx.lineWidth = size * 0.08 + 2 * scale;
+            octx.strokeStyle = "#ffd23f";
+            octx.shadowColor = "#ffd23f";
+            octx.stroke();
+            octx.restore();
+            octx.save();
+            octx.beginPath();
+            octx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+            octx.fillStyle = "rgba(255,255,255,0.9)";
+            octx.shadowColor = "#39e0ff";
+            octx.shadowBlur = 20 * scale;
+            octx.fill();
+            octx.restore();
+          } else {
+            drawGlowAt(x, y, size * 1.8, 0.5);
+            octx.save();
+            octx.fillStyle = "#ffd23f";
+            octx.shadowColor = "#ffb62e";
+            octx.shadowBlur = 30 * scale;
+            starPath(x, y, size, angle);
+            octx.fill();
+            octx.fill();
+            octx.fillStyle = "rgba(255,255,255,0.85)";
+            octx.shadowBlur = 0;
+            starPath(x, y, size * 0.42, angle);
+            octx.fill();
+            octx.restore();
+          }
+        }
+        function drawChargeOrb(now, scale) {
+          var lvl = charge.level;
+          // Dramatic growth: ~30px at the start, ~155px+ at full charge.
+          var r = (30 + lvl * 128) * scale * (1 + 0.06 * Math.sin(now / 90));
+          drawGlowAt(charge.cx, charge.cy, r * (2 + lvl * 1.9), 0.5 + lvl * 0.5);
+          octx.save();
+          octx.beginPath();
+          octx.arc(charge.cx, charge.cy, r, 0, Math.PI * 2);
+          octx.fillStyle = lvl > 0.75 ? "#ffffff" : "rgba(190,235,255,0.95)";
+          octx.shadowColor = "#39b6ff";
+          octx.shadowBlur = (26 + lvl * 84) * scale;
+          octx.fill();
+          octx.restore();
+          // Charge level indicator: progress ring + % so the fill is visible
+          octx.save();
+          octx.beginPath();
+          octx.arc(charge.cx, charge.cy, r + 13 * scale, -Math.PI / 2, -Math.PI / 2 + lvl * Math.PI * 2);
+          octx.lineWidth = 6 * scale;
+          octx.lineCap = "round";
+          octx.strokeStyle = lvl >= 1 ? "#ffffff" : "#ffd23f";
+          octx.shadowColor = "#ffd23f";
+          octx.shadowBlur = 10 * scale;
+          octx.stroke();
+          octx.font = "800 " + Math.round(21 * scale) + "px Nunito, sans-serif";
+          octx.textAlign = "center";
+          octx.textBaseline = "middle";
+          octx.shadowColor = "rgba(0,0,0,0.8)";
+          octx.shadowBlur = 8 * scale;
+          octx.fillStyle = "#ffffff";
+          var pct = Math.round(lvl * 100);
+          octx.fillText(lvl >= 1 ? "FULL POWER!" : pct + "%", charge.cx, charge.cy - r - 34 * scale);
+          octx.font = "700 " + Math.round(12.5 * scale) + "px Nunito, sans-serif";
+          octx.fillStyle = "rgba(190,235,255,0.95)";
+          octx.fillText(lvl >= 1 ? "Push hands forward to fire!" : "Charging…", charge.cx, charge.cy + r + 36 * scale);
+          octx.restore();
+          // Particles stream INTO the orb — more and faster as charge rises
+          var spawnN = 1 + (lvl > 0.35 ? 1 : 0) + (lvl > 0.7 ? 1 : 0);
+          for (var pi = 0; pi < spawnN; pi++) {
+            if (particles.length < 260 && Math.random() < 0.9) {
+              var a = Math.random() * Math.PI * 2;
+              var rr = r * (2.1 + Math.random());
+              var sx = charge.cx + Math.cos(a) * rr, sy = charge.cy + Math.sin(a) * rr;
+              var pull = 0.045 + lvl * 0.05;
+              particles.push({
+                x: sx, y: sy,
+                vx: (charge.cx - sx) * pull, vy: (charge.cy - sy) * pull,
+                life: 0.8, decay: 0.05, size: (2.5 + Math.random() * (3.5 + lvl * 3)) * scale,
+                color: "#8fdcff", noGrav: true
+              });
+            }
+          }
+          // Electric arcs at full charge
+          if (lvl >= 0.85) {
+            octx.save();
+            octx.strokeStyle = "rgba(190,240,255,0.9)";
+            octx.lineWidth = 2 * scale;
+            octx.shadowColor = "#39b6ff";
+            octx.shadowBlur = 12 * scale;
+            for (var e = 0; e < 3; e++) {
+              var a0 = Math.random() * Math.PI * 2;
+              octx.beginPath();
+              octx.moveTo(charge.cx + Math.cos(a0) * r * 0.7, charge.cy + Math.sin(a0) * r * 0.7);
+              var segs = 3, cxp = charge.cx + Math.cos(a0) * r * 0.7, cyp = charge.cy + Math.sin(a0) * r * 0.7;
+              for (var sg = 1; sg <= segs; sg++) {
+                cxp += Math.cos(a0) * r * 0.35 + (Math.random() - 0.5) * r * 0.4;
+                cyp += Math.sin(a0) * r * 0.35 + (Math.random() - 0.5) * r * 0.4;
+                octx.lineTo(cxp, cyp);
+              }
+              octx.stroke();
+            }
+            octx.restore();
+          }
+        }
+        function drawBeam(now, scale) {
+          var t = (now - beam.start) / 950;
+          if (t >= 1) { beam.active = false; return; }
+          var grow = t < 0.35 ? t / 0.35 : 1;
+          var fade = t > 0.6 ? 1 - (t - 0.6) / 0.4 : 1;
+          var maxR = Math.max(overlay.width, overlay.height) * 0.85;
+          var R = maxR * (0.25 + grow * 0.95);
+          octx.save();
+          octx.globalCompositeOperation = "lighter";
+          // Expanding energy column rushing at the viewer
+          var grad = octx.createRadialGradient(beam.cx, beam.cy, 0, beam.cx, beam.cy, R);
+          grad.addColorStop(0, "rgba(255,255,255," + (0.98 * fade) + ")");
+          grad.addColorStop(0.3, "rgba(180,230,255," + (0.85 * fade) + ")");
+          grad.addColorStop(0.62, "rgba(70,170,255," + (0.45 * fade) + ")");
+          grad.addColorStop(1, "rgba(40,110,255,0)");
+          octx.fillStyle = grad;
+          octx.beginPath();
+          octx.arc(beam.cx, beam.cy, R, 0, Math.PI * 2);
+          octx.fill();
+          // Bright core + rim ring
+          octx.beginPath();
+          octx.arc(beam.cx, beam.cy, R * 0.34 * grow + 10 * scale, 0, Math.PI * 2);
+          octx.fillStyle = "rgba(255,255,255," + (0.95 * fade) + ")";
+          octx.fill();
+          octx.beginPath();
+          octx.arc(beam.cx, beam.cy, R * 0.92, 0, Math.PI * 2);
+          octx.lineWidth = (10 + 26 * grow) * scale;
+          octx.strokeStyle = "rgba(150,220,255," + (0.7 * fade) + ")";
+          octx.stroke();
+          octx.restore();
+          if (Math.random() < 0.9) {
+            var a = Math.random() * Math.PI * 2, rr = R * (0.3 + Math.random() * 0.7);
+            particles.push({
+              x: beam.cx + Math.cos(a) * rr * 0.4, y: beam.cy + Math.sin(a) * rr * 0.4,
+              vx: Math.cos(a) * (4 + Math.random() * 7) * scale,
+              vy: Math.sin(a) * (4 + Math.random() * 7) * scale,
+              life: 1, decay: 0.03, size: (3 + Math.random() * 6) * scale,
+              color: "#aee6ff", noGrav: true
+            });
+            if (particles.length > 240) particles.splice(0, particles.length - 240);
+          }
+        }
+
         function renderLoop() {
           requestAnimationFrame(renderLoop);
           var now = performance.now();
@@ -1093,7 +1968,7 @@
           // Sparkle particles
           for (var i = particles.length - 1; i >= 0; i--) {
             var p = particles[i];
-            p.x += p.vx; p.y += p.vy; p.vy += 0.03 * scale;
+            p.x += p.vx; p.y += p.vy; if (!p.noGrav) p.vy += 0.03 * scale;
             p.life -= p.decay;
             if (p.life <= 0) { particles.splice(i, 1); continue; }
             drawStarShape(p.x, p.y, Math.max(p.size * p.life, 0.6), p.color, Math.min(1, p.life));
@@ -1113,9 +1988,6 @@
             octx.fill();
             octx.restore();
           }
-          // Palm flower bloom animation
-          flower.bloom += (flower.target - flower.bloom) * 0.14;
-          if (flower.bloom > 0.02) drawFlowerShape(now, scale);
           // Magic heart (pulsing, glowing)
           heart.alpha += ((heart.visible ? 1 : 0) - heart.alpha) * 0.18;
           if (heart.alpha > 0.02) {
@@ -1137,6 +2009,47 @@
             octx.fill();
             octx.restore();
           }
+          // Two-hand object, charge orb and beam (under the cursor)
+          objAngle += 0.016;
+          if (thrownObj) {
+            thrownObj.x += thrownObj.vx; thrownObj.y += thrownObj.vy;
+            thrownObj.vx *= 1.03; thrownObj.vy *= 1.03;
+            thrownObj.vy += 0.11 * scale; // slight gravity — the flight arcs
+            thrownObj.size *= 0.985;
+            drawObjectShape(thrownObj.type, thrownObj.x, thrownObj.y, Math.max(thrownObj.size, 4), objAngle, now, scale);
+            if (thrownObj.x < -30 || thrownObj.x > overlay.width + 30 ||
+                thrownObj.y < -30 || thrownObj.y > overlay.height + 30 || thrownObj.size < 5) {
+              burstAt(Math.max(0, Math.min(thrownObj.x, overlay.width)),
+                      Math.max(0, Math.min(thrownObj.y, overlay.height)), "#8fdcff", 16, scale);
+              thrownObj = null;
+            }
+          } else if (charge.active || charge.level > 0.02) {
+            if (charge.level >= 0.85) {
+              var jx = (Math.random() - 0.5) * 9 * scale, jy = (Math.random() - 0.5) * 9 * scale;
+              var keepX = charge.cx, keepY = charge.cy;
+              charge.cx += jx; charge.cy += jy;
+              drawChargeOrb(now, scale);
+              charge.cx = keepX; charge.cy = keepY;
+            } else {
+              drawChargeOrb(now, scale);
+            }
+          } else if (beam.active) {
+            drawBeam(now, scale);
+          } else if (objVisible && objMid && now >= objSuppressUntil) {
+            drawObjectShape(objType, objMid.x, objMid.y, objSize, objAngle, now, scale);
+          }
+          if (beam.active && (charge.active || charge.level > 0.02)) drawBeam(now, scale);
+          // Charge hum follows the orb: starts with the charge, climbs
+          // with its level, and stops the moment the charge ends for
+          // ANY reason (fire, fizzle, mode switch, hands lost).
+          if (audioCtx) {
+            if ((charge.active || charge.level > 0.02) && !beam.active) {
+              startChargeSound();
+              updateChargeSound(charge.level, now);
+            } else {
+              stopChargeSound();
+            }
+          }
           // Cursor / stamp preview
           if (cursorState) {
             if (stampMode) {
@@ -1153,6 +2066,25 @@
             }
           }
           if (ringState) drawRingShape(ringState.pt, ringState.frac, ringState.color, scale);
+          // Fist-hold progress ring + countdown label. The ring runs
+          // across BOTH stages (clear at ~1 s in Drawing mode, switch
+          // at 3 s); it flashes red at the clear moment so stage 1 is
+          // visible, and the label notes the clear once it has fired.
+          if (fistHold.since && fistHold.pt) {
+            var fElapsed = now - fistHold.since;
+            var fSecs = Math.max(1, Math.ceil((FIST_SWITCH_MS - fElapsed) / 1000));
+            var fFlashing = fistHold.flashUntil && now < fistHold.flashUntil;
+            var fLabel = fFlashing
+              ? "Canvas cleared! Switching mode… " + fSecs + "s"
+              : (fistHold.cleared
+                  ? "Cleared — switching mode… " + fSecs + "s"
+                  : "Switching mode… " + fSecs + "s");
+            drawSwitchRing(fistHold.pt, fistHold.r,
+              Math.min(fElapsed / FIST_SWITCH_MS, 1),
+              fLabel,
+              scale,
+              fFlashing ? "#ff4d6d" : "#ffd23f");
+          }
         }
         requestAnimationFrame(renderLoop);
 
@@ -1165,6 +2097,11 @@
 
         function runDwellAction(el) {
           var kind = el.getAttribute("data-dwell");
+          // Dwell picks click like real taps — except the actions that
+          // already carry their own sound (colour blip, shutter, sweep,
+          // and the two toggles).
+          if (kind !== "color" && kind !== "save" && kind !== "clear" &&
+              kind !== "guide" && kind !== "mute") playClick();
           if (kind === "color") setColor(parseInt(el.getAttribute("data-idx"), 10), true);
           else if (kind === "size") cycleSize();
           else if (kind === "eraser") toggleEraser();
@@ -1176,6 +2113,11 @@
           else if (kind === "undo") undoLast();
           else if (kind === "clear") clearCanvas(true);
           else if (kind === "save") saveSnapshot();
+          else if (kind === "guide") toggleGuide();
+          else if (kind === "mute") toggleMute();
+          else if (kind === "obj-ball") setObjType("ball", true);
+          else if (kind === "obj-ring") setObjType("ring", true);
+          else if (kind === "obj-star") setObjType("star", true);
         }
 
         // Cached layout rects: measuring the DOM every MediaPipe frame
@@ -1190,16 +2132,23 @@
           }
           return toolbarRectCache;
         }
-        function handleDwell(clientPt, now) {
+        function handleDwell(clientPt, now, objChipsOnly) {
           if (!dwellRectCache || now - dwellRectAt > 400) {
             dwellRectCache = [];
             for (var ci = 0; ci < dwellables.length; ci++) {
-              dwellRectCache.push({ el: dwellables[ci], r: dwellables[ci].getBoundingClientRect() });
+              dwellRectCache.push({
+                el: dwellables[ci],
+                r: dwellables[ci].getBoundingClientRect(),
+                dual: (dwellables[ci].getAttribute("data-dwell") || "").indexOf("obj-") === 0
+              });
             }
             dwellRectAt = now;
           }
           var hit = null;
           for (var i = 0; i < dwellRectCache.length; i++) {
+            // In DUAL mode only the object chips may be dwell-picked —
+            // toolbar actions (colour, clear, save…) stay hard off.
+            if (objChipsOnly && !dwellRectCache[i].dual) continue;
             var r = dwellRectCache[i].r;
             if (clientPt.x >= r.left && clientPt.x <= r.right && clientPt.y >= r.top && clientPt.y <= r.bottom) {
               hit = dwellRectCache[i].el;
@@ -1246,16 +2195,119 @@
           var dx = a.x - b.x, dy = a.y - b.y;
           return Math.sqrt(dx * dx + dy * dy);
         }
-        function palmCenter(lm) {
+        function palmCenterNorm(lm) {
           var ids = [0, 5, 9, 13, 17], sx = 0, sy = 0;
           for (var i = 0; i < ids.length; i++) { sx += lm[ids[i]].x; sy += lm[ids[i]].y; }
-          return toStage({ x: sx / ids.length, y: sy / ids.length });
+          return { x: sx / ids.length, y: sy / ids.length };
+        }
+        function handScaleNorm(lm) { return Math.max(dist2d(lm[0], lm[9]), 0.001); }
+        function fingerBendDeg(lm, mcp, pip, tip) {
+          var ax = lm[mcp].x - lm[pip].x, ay = lm[mcp].y - lm[pip].y;
+          var bx = lm[tip].x - lm[pip].x, by = lm[tip].y - lm[pip].y;
+          var la = Math.sqrt(ax * ax + ay * ay) || 0.001;
+          var lb = Math.sqrt(bx * bx + by * by) || 0.001;
+          var cos = Math.max(-1, Math.min(1, (ax * bx + ay * by) / (la * lb)));
+          return 180 - Math.acos(cos) * 180 / Math.PI; // 0 = dead straight
+        }
+        function isCurled(lm) {
+          // Loose cup / bowl pose (the real Kamehameha shape): wrists
+          // together, palms facing each other, fingers curled UPWARD
+          // like a cup — fingertips do NOT fold into the palm. So we
+          // accept any moderate bend and only reject a hand that is
+          // fully straight and spread wide open.
+          var tips = [8, 12, 16, 20], sum = 0;
+          for (var i = 0; i < tips.length; i++) sum += dist2d(lm[tips[i]], lm[0]);
+          var ratio = (sum / tips.length) / handScaleNorm(lm);
+          if (ratio < 2.05) return true;
+          // PIP bend: at least 2 fingers bent even slightly counts.
+          var fingers = [[5, 6, 8], [9, 10, 12], [13, 14, 16], [17, 18, 20]];
+          var bent = 0;
+          for (var f = 0; f < fingers.length; f++) {
+            if (fingerBendDeg(lm, fingers[f][0], fingers[f][1], fingers[f][2]) > 15) bent++;
+          }
+          if (bent >= 2) return true;
+          // Fallback: fingertips clustered together (not spread) with
+          // the hand even slightly shortened vs a flat open palm.
+          var spread = dist2d(lm[8], lm[20]) / handScaleNorm(lm);
+          return ratio < 2.28 && spread < 1.35;
+        }
+        /* ---------- Kamehameha charge pose (STRICT) ----------
+           The charge may ONLY fill in the exact cupped pose from the
+           reference photo: both hands cupped together like holding
+           one ball between the palms — palms facing each other and
+           nearly touching, fingers of BOTH hands really curled over
+           the imaginary ball, thumbs close together. Anything else
+           (flat/open hands, hands apart, one hand loose) never
+           charges, and breaking the pose fizzles a live charge. */
+        function isChargeCurled(lm) {
+          // Real curl on at least 3 of the 4 fingers. Tip-vs-PIP test:
+          // a straight finger's tip sits ~2x as far from the wrist as
+          // its PIP joint; once the finger truly curls over, the tip
+          // folds back to ~1.45x or less. The PIP bend angle is kept
+          // as a backstop for poses where depth flattens distances.
+          var fingers = [[5, 6, 8], [9, 10, 12], [13, 14, 16], [17, 18, 20]];
+          var curled = 0;
+          for (var f = 0; f < fingers.length; f++) {
+            var tipD = dist2d(lm[fingers[f][2]], lm[0]);
+            var pipD = dist2d(lm[fingers[f][1]], lm[0]);
+            if (tipD < pipD * 1.45 || fingerBendDeg(lm, fingers[f][0], fingers[f][1], fingers[f][2]) > 45) curled++;
+          }
+          return curled >= 3;
+        }
+        function isChargePose(lmA, lmB, palmDist) {
+          // Palms nearly touching: palm centres within ~0.15 of the
+          // frame width (tightened from the old loose 0.22).
+          if (palmDist >= 0.15) return false;
+          if (!isChargeCurled(lmA) || !isChargeCurled(lmB)) return false;
+          // Palms facing each other: each hand's fingers curl OVER
+          // toward the other palm, so the middle fingertip ends up
+          // nearer the OTHER hand's palm centre than its own wrist.
+          // (Two flat palms side by side, or facing the camera, fail.)
+          var pA = palmCenterNorm(lmA), pB = palmCenterNorm(lmB);
+          if (dist2d(lmA[12], pB) > dist2d(lmA[12], lmA[0])) return false;
+          if (dist2d(lmB[12], pA) > dist2d(lmB[12], lmB[0])) return false;
+          // Thumbs close together, cupping the bottom of the "ball".
+          if (dist2d(lmA[4], lmB[4]) > palmDist + 0.09) return false;
+          return true;
+        }
+        function fireKamehameha(now) {
+          beam.active = true;
+          beam.start = now;
+          beam.cx = charge.cx; beam.cy = charge.cy;
+          beam.level = charge.level;
+          charge.active = false;
+          charge.level = 0;
+          playFireSound();
+          beamCooldownUntil = now + 1800;
+          objSuppressUntil = now + 1100;
+          objVisible = false;
+          flashEl.classList.remove("go");
+          void flashEl.offsetWidth;
+          flashEl.classList.add("go");
+          var scale = drawCanvas.width / Math.max(stage.clientWidth, 1);
+          burstAt(beam.cx, beam.cy, "#aee6ff", 22, scale);
+          toast("KAMEHAMEHA!");
+          setMode("gesture", "Kamehameha fired!");
+        }
+        function fizzleCharge(silent) {
+          if (charge.level > 0.1) {
+            var scale = drawCanvas.width / Math.max(stage.clientWidth, 1);
+            burstAt(charge.cx, charge.cy, "#8fdcff", 10, scale);
+            // A real fizzle (pose broken mid-charge) zaps; a silent
+            // reset (mode switch) just cuts the charge hum.
+            if (!silent) playFizzleSound();
+          } else {
+            stopChargeSound();
+          }
+          charge.active = false;
+          charge.level = 0;
         }
         function handleHeartPinch(lm, idx) {
           var down = dist2d(lm[4], lm[8]) < 0.042;
           if (down && !pinchDown[idx]) {
             pinchDown[idx] = true;
             setColor((colorIdx + 1) % COLORS.length, false);
+            playBlip();
             toast("Heart color: " + COLORS[colorIdx].name);
             burstHearts(heart.cx, heart.cy);
           } else if (!down) {
@@ -1263,41 +2315,369 @@
           }
         }
 
+        /* ---------- Strict mode gating: SINGLE vs DUAL ---------- */
+        // Exactly two interaction modes, chosen by detected hand count.
+        // The committed mode only flips after the new count has held
+        // steady for ~140 ms, so a one-frame MediaPipe flicker can never
+        // leak single-hand drawing into two-hand mode or vice versa.
+        // Every flip hard-resets all transient gesture state, and the
+        // single-hand pen must be freshly "armed" (draw pose held for a
+        // few frames) before it can go down again.
+        var MODE_SWITCH_MS = 140;
+        var PEN_ARM_FRAMES = 3;
+        var stableHands = -1;   // committed hand count: 0, 1 or 2
+        var pendingHands = -1;  // candidate count awaiting confirmation
+        var pendingSince = 0;
+        var penArmed = false, penArmFrames = 0;
+
+        function hardResetForMode() {
+          liftPen();            // pen up, stroke path cleared — no jump lines
+          smoothTip = null;     // fingertip smoothing restarts clean
+          palmSince = 0; palmFired = false;
+          fistSince = 0; fistFired = false;
+          // A mode switch cancels any fist-hold in progress (the
+          // latch survives — the fist must open before re-arming).
+          fistHold.since = 0; fistHold.lastWholeSec = 0; fistHold.pt = null;
+          fistHold.cleared = false; fistHold.flashUntil = 0;
+          stampHoldSince = 0; stampHoldFired = false; stampHoldPt = null;
+          stampPinchWas = false;
+          pinchDown[0] = false; pinchDown[1] = false;
+          if (dwellTarget) { dwellTarget.style.setProperty("--dwell", 0); dwellTarget = null; }
+          if (charge.active || charge.level > 0) fizzleCharge(true);
+          heart.visible = false; heartLatch = false;
+          cursorState = null; ringState = null;
+          penArmed = false; penArmFrames = 0;
+          // Every dual feature off until Object mode + two hands run it.
+          objMode = false;
+          objVisible = false;
+          thrownObj = null;
+          objMid = null; objPrevMid = null; objPrevAt = 0;
+          objVel.x = 0; objVel.y = 0;
+          objTrail = [];
+          scaleHistory = [];
+          wasTwoHands = false;
+          setObjModeUI(activeMode === "object");
+        }
+
+        /* ---------- Fist hold: ~1 s clear (Drawing) -> 3 s switch ---------- */
+        function cycleMode() {
+          modeIdx = (modeIdx + 1) % MODES.length;
+          activeMode = MODES[modeIdx].id;
+          hardResetForMode();
+          updateModePill();
+          showModeBanner(MODES[modeIdx].banner);
+          playSwitchSound();
+          toast(MODES[modeIdx].label + " on — the other modes are off");
+        }
+        // Returns true when the fist hold fired this frame (caller must
+        // stop — the mode just changed and all state was reset).
+        function detectFistSwitch(allHands, now) {
+          // Any single visible hand making a fist counts, in every
+          // mode (in Object mode either hand). A fist = all four
+          // fingers folded down (see classify()).
+          var fistLm = null;
+          for (var i = 0; i < allHands.length; i++) {
+            if (classify(allHands[i]) === "fist") { fistLm = allHands[i]; break; }
+          }
+          if (!fistLm) {
+            // Fist opened or the hand was lost: reset silently.
+            fistHold.since = 0; fistHold.lastWholeSec = 0; fistHold.pt = null;
+            fistHold.cleared = false; fistHold.flashUntil = 0;
+            fistHold.latched = false;
+            return false;
+          }
+          if (fistHold.latched) return false; // switched already; fist must open first
+          if (charge.active || charge.level > 0) {
+            // A cupped Kamehameha charge never doubles as the switch fist.
+            fistHold.since = 0; fistHold.lastWholeSec = 0; fistHold.pt = null;
+            fistHold.cleared = false; fistHold.flashUntil = 0;
+            return false;
+          }
+          var canScale = drawCanvas.width / Math.max(stage.clientWidth, 1);
+          fistHold.pt = toStage(palmCenterNorm(fistLm));
+          fistHold.r = Math.max(handScaleNorm(fistLm) * drawCanvas.height * 0.85, 34 * canScale);
+          if (!fistHold.since) {
+            fistHold.since = now;
+            fistHold.lastWholeSec = 0;
+            fistHold.cleared = false; fistHold.flashUntil = 0;
+            return false;
+          }
+          var elapsed = now - fistHold.since;
+          // STAGE 1 (Drawing mode only): at ~1 s the fist clears the
+          // canvas, exactly like the original fist-clear — undoable,
+          // with its clear sweep sound and toast (clearCanvas does
+          // all of that). The SAME hold then continues into stage 2;
+          // the ring flashes red so the user sees the clear fired.
+          var clearedThisFrame = false;
+          if (activeMode === "draw" && !fistHold.cleared && elapsed >= FIST_CLEAR_MS) {
+            fistHold.cleared = true;
+            fistHold.flashUntil = now + 500;
+            clearedThisFrame = true;
+            clearCanvas(true);
+          }
+          var wholeSec = Math.floor(elapsed / 1000);
+          if (wholeSec > fistHold.lastWholeSec) {
+            fistHold.lastWholeSec = wholeSec;
+            // Ticks at 1 s and 2 s only — at 3 s the switch itself
+            // fires. At 1 s in Drawing mode the clear sweep already
+            // sounded, so no tick on top of it.
+            if (wholeSec < FIST_SWITCH_MS / 1000 && !clearedThisFrame) playTick();
+          }
+          // STAGE 2: at 3 s total the mode switches.
+          if (elapsed >= FIST_SWITCH_MS) {
+            fistHold.latched = true;
+            fistHold.since = 0; fistHold.lastWholeSec = 0; fistHold.pt = null;
+            fistHold.cleared = false; fistHold.flashUntil = 0;
+            cycleMode();
+            return true;
+          }
+          return false;
+        }
+
         function onResults(results) {
           if (!running) { running = true; }
           var now = performance.now();
-          var allHands = results.multiHandLandmarks;
-          if (!allHands || allHands.length === 0) {
+          var allHands = results.multiHandLandmarks || [];
+          // ROOT-CAUSE GUARD: MediaPipe occasionally reports ONE physical
+          // hand TWICE (a duplicate detection with near-identical
+          // landmarks). Two "hands" whose palm centres sit on top of
+          // each other are really one hand — drop the ghost entry, or
+          // every two-hand test (cupped pose + palmDist < 0.22) passes
+          // for a single hand and the Kamehameha charges one-handed.
+          if (allHands.length >= 2 &&
+              dist2d(palmCenterNorm(allHands[0]), palmCenterNorm(allHands[1])) < 0.06) {
+            allHands = [allHands[0]];
+          }
+          var count = Math.min(allHands.length, 2);
+
+          /* ----- Latched mode gating: hand count NEVER switches modes.
+             Only the fist hold switches Drawing <-> Object (3 s; in
+             Drawing mode the same hold clears the canvas at ~1 s).
+             The fist is checked first, in every mode, on any
+             hand (it also resets the timer when no fist is visible). */
+          if (detectFistSwitch(allHands, now)) return;
+
+          if (count === 0) {
             setMode("idle", "Show your hand");
-            liftPen();
-            smoothTip = null;
-            palmSince = 0; fistSince = 0; fistFired = false;
-            flower.target = 0;
-            heart.visible = false;
             cursorState = null; ringState = null;
-            stampHoldSince = 0; stampHoldFired = false; stampPinchWas = false;
-            if (dwellTarget) { dwellTarget.style.setProperty("--dwell", 0); dwellTarget = null; }
+            // All hands lost mid-charge: fizzle immediately, zap included.
+            if (charge.active || charge.level > 0) fizzleCharge();
+            heart.visible = false; heartLatch = false;
             return;
           }
 
-          /* ----- Two-hand heart: index tips touching on top, thumbs below ----- */
+          /* ----- Object Mode needs BOTH hands; one hand does nothing.
+             A hand lost mid-charge fizzles the charge IMMEDIATELY
+             (with the fizzle sound) — it may never linger or resume. -- */
+          if (activeMode === "object" && allHands.length < 2) {
+            if (charge.active || charge.level > 0) {
+              fizzleCharge();
+              toast("Charge fizzled out — keep both hands up");
+            }
+            liftPen();
+            cursorState = null; ringState = null;
+            heart.visible = false;
+            objTrail = [];
+            scaleHistory = [];
+            setMode("object", "🖐️ Object Mode — show both hands");
+            return;
+          }
+
+          /* The two-hand heart lives in DRAWING Mode now (see the draw
+             pipeline below) — in Object Mode it must never appear. */
+
+          /* ----- Two hands: Object Mode (pen pauses) ----- */
+          if (activeMode === "object" && allHands.length >= 2) {
+            var oA = allHands[0], oB = allHands[1];
+            heart.visible = false; // the heart NEVER appears in Object Mode
+            var cssScale = stage.clientWidth / Math.max(drawCanvas.width, 1);
+            var canScale = drawCanvas.width / Math.max(stage.clientWidth, 1);
+            if (!objMode) {
+              objMode = true;
+              setObjModeUI(true);
+              if (!wasTwoHands) toast("Object Mode — move hands apart to grow the object");
+            }
+            wasTwoHands = true;
+            liftPen();
+            palmSince = 0; palmFired = false; fistSince = 0;
+            cursorState = null; ringState = null;
+
+            var pA = palmCenterNorm(oA), pB = palmCenterNorm(oB);
+            var midNorm = { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 };
+            var palmDist = dist2d(pA, pB);
+            var rawMid = toStage(midNorm);
+            // Adaptive smoothing on the midpoint — same recipe as the fingertip
+            if (!objMid) {
+              objMid = rawMid;
+            } else {
+              var mdx = rawMid.x - objMid.x, mdy = rawMid.y - objMid.y;
+              var moveCss = Math.sqrt(mdx * mdx + mdy * mdy) * cssScale;
+              var mAlpha = moveCss < 3 ? 0.34 : (moveCss > 30 ? 0.94 : 0.55 + (moveCss - 3) / 27 * 0.32);
+              objMid = { x: objMid.x + mdx * mAlpha, y: objMid.y + mdy * mAlpha };
+            }
+            // Size from hand distance: closer = smaller, apart = bigger.
+            // Full range mapped smoothly: hands touching (~0.05) = tiny
+            // ~20px, hands fully apart (~0.85) = huge ~255px radius
+            // (about a third of screen height). Same range for Ball,
+            // Ring and Star — they all read objSize.
+            var distClamped = Math.max(0.05, Math.min(palmDist, 0.85));
+            var distT = (distClamped - 0.05) / 0.8;
+            // Gentle ease so the middle range stays controllable while
+            // the ends still reach the true min / max.
+            var distEase = distT * distT * (3 - 2 * distT) * 0.35 + distT * 0.65;
+            var targetSizeCss = 20 + distEase * 235;
+            var targetSize = targetSizeCss * canScale;
+            objSize += (targetSize - objSize) * 0.24;
+
+            // Midpoint trail for flick-to-throw: keep the last few
+            // samples (~5 result frames). Velocity measured across the
+            // whole window is far more reliable than a per-frame
+            // smoothed guess — a clear flick reads loud and clean.
+            objTrail.push({ t: now, x: objMid.x, y: objMid.y });
+            while (objTrail.length > 6) objTrail.shift();
+            while (objTrail.length > 2 && now - objTrail[0].t > 240) objTrail.shift();
+            objPrevMid = { x: objMid.x, y: objMid.y };
+            objPrevAt = now;
+
+            // Hand scale history for thrust (push toward camera)
+            // detection — a SHORT ~200 ms window so a sharp forward
+            // jerk registers immediately, not half a second later.
+            var avgScale = (handScaleNorm(oA) + handScaleNorm(oB)) / 2;
+            scaleHistory.push({ t: now, s: avgScale });
+            while (scaleHistory.length && now - scaleHistory[0].t > 200) scaleHistory.shift();
+
+            // STRICT charge pose: only the exact cupped-hands pose
+            // (see isChargePose) may charge — nothing else.
+            var chargePose = isChargePose(oA, oB, palmDist) && now >= beamCooldownUntil && !beam.active;
+
+            /* --- Kamehameha: charge, thrust-release, fizzle --- */
+            if (charge.active || charge.level > 0) {
+              // Thrust: hands jerked toward the camera. Fires
+              // IMMEDIATELY at any charge above ~12% when the hand
+              // scale grows ~9%+ inside the ~200 ms window — no extra
+              // pose or delay. Beam power still scales with level.
+              if (charge.level > 0.12 && scaleHistory.length > 2 &&
+                  (avgScale - scaleHistory[0].s) / Math.max(scaleHistory[0].s, 0.001) > 0.09) {
+                charge.cx = objMid.x; charge.cy = objMid.y;
+                fireKamehameha(now);
+                setMode("gesture", "Kamehameha fired!");
+                return;
+              }
+              if (chargePose) {
+                var cdt = charge.lastAt ? Math.min(now - charge.lastAt, 80) : 16;
+                charge.level = Math.min(1, charge.level + cdt / 1200);
+                charge.cx = objMid.x; charge.cy = objMid.y;
+                charge.lastAt = now;
+                objVisible = false;
+                setMode("gesture", charge.level >= 1 ? "FULL POWER — push hands forward!" :
+                        charge.level > 0.6 ? "Charging… push forward to fire!" : "Charging Kamehameha…");
+                return;
+              }
+              // Pose broken without a thrust: open hands fizzle it out
+              fizzleCharge();
+              toast("Charge fizzled out");
+            } else if (chargePose) {
+              charge.active = true;
+              charge.level = 0.02;
+              charge.cx = objMid.x; charge.cy = objMid.y;
+              charge.lastAt = now;
+              objVisible = false;
+              setMode("gesture", "Charging Kamehameha…");
+              return;
+            }
+            charge.lastAt = 0;
+
+            if (beam.active) {
+              objVisible = false;
+              setMode("gesture", "Kamehameha fired!");
+              return;
+            }
+
+            /* --- Throw: a fast flick of BOTH hands. Velocity is the
+               midpoint's travel across the trail window; past ~1.4
+               screen-widths per second the object launches in exactly
+               that direction at exactly that speed. Checked BEFORE the
+               pop so a flick that happens to open a hand still throws. --- */
+            if (objVisible && !thrownObj && now >= objSuppressUntil && objTrail.length >= 3) {
+              var tr0 = objTrail[0], tr1 = objTrail[objTrail.length - 1];
+              var trDt = (tr1.t - tr0.t) / 1000;
+              if (trDt >= 0.05) {
+                var trVx = (tr1.x - tr0.x) / trDt;   // canvas px / sec
+                var trVy = (tr1.y - tr0.y) / trDt;
+                var trSpeed = Math.sqrt(trVx * trVx + trVy * trVy);
+                if (trSpeed > overlay.width * 1.4) {
+                  thrownObj = {
+                    x: objMid.x, y: objMid.y,
+                    vx: trVx / 60, vy: trVy / 60,   // render loop steps ~60fps frames
+                    size: objSize, type: objType
+                  };
+                  objSuppressUntil = now + 700;
+                  objVisible = false;
+                  objTrail = [];
+                  playThrowWhoosh();
+                  toast("Thrown!");
+                  setMode("gesture", "Object thrown!");
+                  return;
+                }
+              }
+            }
+
+            /* --- Pop: exactly one fully open hand bursts the object --- */
+            var gA = classify(oA), gB = classify(oB);
+            if (objVisible && now >= objSuppressUntil && !thrownObj &&
+                ((gA === "palm") !== (gB === "palm"))) {
+              burstAt(objMid.x, objMid.y, objType === "star" ? "#ffd23f" : "#8fdcff", 18, canScale);
+              playPopBurst();
+              objSuppressUntil = now + 900;
+              objVisible = false;
+              toast("Pop!");
+              setMode("gesture", "Object popped!");
+              return;
+            }
+
+            // Normal floating object + dwell picking on the chip row
+            var objWasVisible = objVisible;
+            objVisible = !thrownObj && now >= objSuppressUntil;
+            if (objVisible && !objWasVisible && charge.level <= 0) playSpawnPop();
+            var midClient = {
+              x: objMid.x * cssScale, y: objMid.y * cssScale
+            };
+            if (gA === "move" || gB === "move" || gA === "other" || gB === "other") {
+              handleDwell(midClient, now, true);
+            }
+            setMode("object", "Object Mode — " +
+              (objType === "ball" ? "Energy Ball" : objType === "ring" ? "Glow Ring" : "Star"));
+            return;
+          }
+
+          /* ----- Drawing Mode only: the drawing pipeline. The Object
+             branch above has already returned, and a second
+             hand here is simply ignored — it does nothing. ----- */
+          if (activeMode !== "draw") { liftPen(); cursorState = null; ringState = null; return; }
+
+          /* ----- Two-hand heart (Drawing Mode): index fingertips
+             touching on top, thumbs touching below. The glowing heart
+             follows the hands, a pinch on either hand recolours it,
+             and drawing pauses while it is shown. ----- */
           if (allHands.length >= 2) {
-            var hA = allHands[0], hB = allHands[1];
-            var idxMid = { x: (hA[8].x + hB[8].x) / 2, y: (hA[8].y + hB[8].y) / 2 };
-            var thMid = { x: (hA[4].x + hB[4].x) / 2, y: (hA[4].y + hB[4].y) / 2 };
-            if (dist2d(hA[8], hB[8]) < 0.075 && dist2d(hA[4], hB[4]) < 0.075 && idxMid.y < thMid.y - 0.02) {
-              var cS = toStage({ x: (idxMid.x + thMid.x) / 2, y: (idxMid.y + thMid.y) / 2 });
-              if (!heart.visible) {
-                burstHearts(cS.x, cS.y);
+            var dA = allHands[0], dB = allHands[1];
+            var dIdxMid = { x: (dA[8].x + dB[8].x) / 2, y: (dA[8].y + dB[8].y) / 2 };
+            var dThMid = { x: (dA[4].x + dB[4].x) / 2, y: (dA[4].y + dB[4].y) / 2 };
+            if (dist2d(dA[8], dB[8]) < 0.075 && dist2d(dA[4], dB[4]) < 0.075 && dIdxMid.y < dThMid.y - 0.02) {
+              var hcS = toStage({ x: (dIdxMid.x + dThMid.x) / 2, y: (dIdxMid.y + dThMid.y) / 2 });
+              if (!heartLatch) {
+                heartLatch = true;
+                burstHearts(hcS.x, hcS.y);
+                playHeartChime();
                 toast("Magic heart! Pinch either hand to change its color");
               }
               heart.visible = true;
-              heart.cx = cS.x; heart.cy = cS.y;
-              heart.size = Math.max(24, dist2d(idxMid, thMid) * drawCanvas.height * 0.6);
-              handleHeartPinch(hA, 0);
-              handleHeartPinch(hB, 1);
+              heart.cx = hcS.x; heart.cy = hcS.y;
+              heart.size = Math.max(24, dist2d(dIdxMid, dThMid) * drawCanvas.height * 0.6);
+              handleHeartPinch(dA, 0);
+              handleHeartPinch(dB, 1);
               liftPen();
-              flower.target = 0; palmSince = 0; fistSince = 0;
+              palmSince = 0; palmFired = false; fistSince = 0;
               cursorState = null; ringState = null;
               if (dwellTarget) { dwellTarget.style.setProperty("--dwell", 0); dwellTarget = null; }
               setMode("gesture", "Magic heart");
@@ -1305,8 +2685,7 @@
             }
           }
           heart.visible = false;
-
-          /* ----- Single hand ----- */
+          heartLatch = false;
           var lm = allHands[0];
           var tip = toStage(lm[8]);
           if (!smoothTip) {
@@ -1323,6 +2702,7 @@
             };
           }
           var gesture = classify(lm);
+          if (gesture !== "draw" && !penArmed) penArmFrames = 0;
           var clientPt = {
             x: smoothTip.x / drawCanvas.width * stage.clientWidth,
             y: smoothTip.y / drawCanvas.height * stage.clientHeight
@@ -1353,34 +2733,26 @@
           }
           if (!pinch) stampPinchWas = false;
 
-          if (gesture === "fist") {
-            liftPen(); palmSince = 0; flower.target = 0;
-            if (!fistSince) { fistSince = now; fistFired = false; }
-            var ffrac = (now - fistSince) / FIST_HOLD_MS;
-            if (!fistFired && ffrac >= 1) {
-              fistFired = true;
-              clearCanvas(true);
-            }
-            setMode("gesture", fistFired ? "Cleared" : "Hold fist — clearing…");
-            cursorState = { pt: smoothTip, mode: "move" };
-            if (!fistFired) ringState = { pt: smoothTip, frac: Math.min(ffrac, 1), color: "#ff4d6d" };
-            return;
-          }
+          // The fist is handled globally above (two-stage hold:
+          // ~1 s clears the canvas in Drawing Mode, 3 s switches the
+          // mode). Here it simply lifts the pen, like any other
+          // non-draw pose, via the generic branch below.
           fistSince = 0;
 
           if (gesture === "palm") {
             liftPen();
-            if (!palmSince) palmSince = now;
-            var pc = palmCenter(lm);
-            flower.cx = pc.x; flower.cy = pc.y;
+            if (!palmSince) { palmSince = now; palmFired = false; }
             var heldMs = now - palmSince;
-            flower.target = heldMs >= FLOWER_HOLD_MS ? 1 : 0;
-            setMode("gesture", flower.target ? "Flower power!" : "Hold palm — a flower blooms…");
+            if (!palmFired && heldMs >= PALM_HOLD_MS) {
+              palmFired = true;
+              setColor((colorIdx + 1) % COLORS.length, true);
+            }
+            setMode("gesture", palmFired ? "Colour changed" : "Hold palm — next colour…");
             cursorState = { pt: smoothTip, mode: "move" };
-            if (!flower.target) ringState = { pt: smoothTip, frac: Math.min(heldMs / FLOWER_HOLD_MS, 1), color: "#3ddc84" };
+            if (!palmFired) ringState = { pt: smoothTip, frac: Math.min(heldMs / PALM_HOLD_MS, 1), color: "#3ddc84" };
             return;
           }
-          palmSince = 0; flower.target = 0;
+          palmSince = 0; palmFired = false;
 
           if (stampMode) {
             liftPen();
@@ -1405,9 +2777,23 @@
           }
 
           if (gesture === "draw") {
-            setMode(eraserOn ? "erase" : "draw", eraserOn ? "Erasing" : (rainbowOn ? "Rainbow drawing" : "Drawing"));
-            strokeTo(smoothTip);
-            cursorState = { pt: smoothTip, mode: "draw" };
+            if (!penArmed) {
+              // Just entered single-hand mode: the draw pose (index up,
+              // others down) must be held fresh for a few frames before
+              // the pen may go down — so the hand left over when the
+              // second hand leaves never starts drawing by accident.
+              penArmFrames++;
+              liftPen();
+              if (penArmFrames >= PEN_ARM_FRAMES) penArmed = true;
+            }
+            if (penArmed) {
+              setMode(eraserOn ? "erase" : "draw", eraserOn ? "Erasing" : (rainbowOn ? "Rainbow drawing" : "Drawing"));
+              strokeTo(smoothTip);
+              cursorState = { pt: smoothTip, mode: "draw" };
+            } else {
+              setMode("move", "Move — pen lifted");
+              cursorState = { pt: smoothTip, mode: "move" };
+            }
           } else {
             liftPen();
             setMode("move", "Move — pen lifted");
@@ -1430,6 +2816,7 @@
         }
 
         startBtn.addEventListener("click", function () {
+          initAudio(); // user gesture: create/resume the AudioContext
           startBtn.disabled = true;
           startBtn.textContent = "Starting…";
           gateMsg.className = "";
@@ -1515,7 +2902,22 @@
           }
         }
 
+        /* ---------- UI click sounds + mute button wiring ---------- */
+        muteBtnEl.addEventListener("click", toggleMute);
+        Array.prototype.forEach.call(
+          document.querySelectorAll(".tool, .obj-chip, .swatch"),
+          function (el) {
+            // These carry their own sounds (or their own click logic) —
+            // a second generic tick on top would just be noise.
+            if (el.id === "muteBtn" || el.id === "guideToggle" ||
+                el.id === "saveBtn" || el.id === "clearBtn" ||
+                el.classList.contains("swatch")) return;
+            el.addEventListener("click", function () { playClick(); });
+          }
+        );
+
         setColor(0, false);
+        updateModePill();
       })();
     </script>
   </body>
